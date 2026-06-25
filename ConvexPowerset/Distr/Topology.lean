@@ -28,7 +28,7 @@ instance {α : Type} : T1Space (Distr α) where
     apply distr_inducing.isClosed_iff.2
     use {distr_inj μ}; constructor
     · exact isClosed_singleton
-    · unfold Set.preimage; ext ν; simp
+    · unfold Set.preimage; ext ν; simp only [Set.mem_singleton_iff, Set.mem_setOf_eq]
       refine ⟨?_, congrArg _⟩
       intro h; exact distr_inj_injective h
   }
