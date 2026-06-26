@@ -71,3 +71,35 @@ noncomputable instance {α : Type} : OmegaCompletePartialOrder (Distr α) where
   }
   le_ωSup c _ x := le_iSup (fun j ↦ c j x) _
   ωSup_le c _ h x := iSup_le fun j ↦ h j x
+
+lemma dist_le_bot_ge {α : Type} {μ : Distr α} {ν : Distr α} (hle : μ ≤ ν) : ν ⊥ ≤ μ ⊥ := by {
+  rw [prob_bot, prob_bot]; simp only [tsub_le_iff_right]
+  have hs := ENNReal.tsum_le_tsum hle
+  refine le_trans ?_ (add_le_add_right hs _)
+  have hle1 : ∑' (x : α), μ x ≤ 1 := by {
+    rcases μ with ⟨d, h⟩; simp only [distr_coe] at *; rw [← HasSum.tsum_eq h]
+    exact Summable.tsum_le_tsum_of_inj WithBot.some WithBot.coe_injective (by simp)
+      (fun x => le_refl (d ↑x))
+      ENNReal.summable
+      ENNReal.summable
+  }
+  rw [ENNReal.sub_add_eq_add_sub hle1, ENNReal.add_sub_cancel_right]
+  all_goals { exact ne_top_of_le_ne_top (b := 1) (by simp) hle1 }
+}
+
+lemma proper_dist_maximal {α : Type} {μ ν : Distr α} (hbot : μ ⊥ = 0) (hle : μ ≤ ν) :
+     μ = ν := by
+  have hbot' : ν ⊥ = 0 := by
+    refine le_antisymm ?_ bot_le
+    rw [← hbot]; exact dist_le_bot_ge hle
+  ext x; cases x with
+  | bot => exact hbot.trans hbot'.symm
+  | coe y =>
+    refine (hle _).not_lt_iff_eq.mp fun hc ↦ lt_irrefl (1 : ENNReal) ?_
+    nth_rewrite 1 [← μ.property.tsum_eq]
+    nth_rewrite 2 [← ν.property.tsum_eq]
+    refine ENNReal.tsum_lt_tsum ?_ ?_ hc
+    · rw [μ.property.tsum_eq]; exact ENNReal.one_ne_top
+    · intro x; cases x with
+      | bot => exact le_of_eq (hbot.trans hbot'.symm)
+      | coe z => exact hle z
