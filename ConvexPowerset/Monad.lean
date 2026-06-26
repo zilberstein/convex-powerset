@@ -177,15 +177,108 @@ lemma c_bind_upcl {α β : Type} {s : ConvexPowerset α} {k : α → ConvexPower
       ⟨ fun y ↦ match y with
         | some y => f x y + f x ⊥ * Δ y
         | none => f x ⊥ * (1 - tsum Δ),
-      by sorry
-      ⟩
+      by
+        have h_tsum_delta : ∑' y, Δ y = ((μ.bind f) ⊥ - ν₂ ⊥) / (μ.bind f) ⊥ := by
+          have h_tsum_delta : ∑' y, (ν₂ (some y) - (μ.bind f) (some y)) = (μ.bind f) ⊥ - ν₂ ⊥ := by
+            have hkey :
+                ∑' y : β, (ν₂ (some y) - (μ.bind f) (some y)) =
+                (∑' y : β, ν₂ (some y)) - (∑' y : β, (μ.bind f) (some y)) := by
+              apply tsum_sub';
+              · have := prob_not_bot ( μ.bind f );
+                exact this.symm ▸ ne_of_lt (lt_of_le_of_lt tsub_le_self ENNReal.one_lt_top);
+              · exact fun y => hle y;
+            have hkey : ∑' y : β, ν₂ (some y) = 1 - ν₂ ⊥ := by
+              convert prob_not_bot ν₂ using 1;
+            have hkey : ∑' y : β, (μ.bind f) (some y) = 1 - (μ.bind f) ⊥ := by
+              convert prob_not_bot ( μ.bind f ) using 1;
+            simp_all only [Set.mem_pi, PMF.mem_support_iff, ne_eq, PMF.bind_apply,
+              ENNReal.tsum_eq_zero, mul_eq_zero, not_forall, not_or, tsub_tsub];
+            rw [ ENNReal.sub_eq_of_eq_add ];
+            · simp only [ne_eq, ENNReal.add_eq_top, ENNReal.sub_eq_top_iff, ENNReal.one_ne_top,
+                false_and, or_false];
+              exact ne_of_lt ( lt_of_le_of_lt ( distr_upper_bound _ _ ) ( ENNReal.one_lt_top ) );
+            · rw [ ← add_assoc, tsub_add_cancel_of_le ];
+              · rw [ add_tsub_cancel_of_le ];
+                convert distr_upper_bound ( μ.bind f ) ⊥ using 1;
+              · convert dist_le_bot_ge hle using 1;
+          convert congr_arg ( · / ( μ.bind f ) ⊥ ) h_tsum_delta using 1;
+          simp +decide only [div_eq_mul_inv];
+          exact ENNReal.tsum_mul_right
+        have h_sum : (∑' y, ((f x) (some y) + (f x) ⊥ * Δ y)) + (f x) ⊥ * (1 - tsum Δ) = 1 := by
+          rw [ ENNReal.tsum_add, ENNReal.tsum_mul_left ];
+          rw [ h_tsum_delta, ENNReal.mul_sub ];
+          · rw [ add_assoc, add_tsub_cancel_of_le ];
+            · convert ( f x ).property.tsum_eq using 1;
+              rw [ total_prob ] ; aesop;
+            · gcongr;
+              rw [ ENNReal.div_le_iff_le_mul ] <;> norm_num;
+          · exact fun _ _ => ne_of_lt (lt_of_le_of_lt (distr_upper_bound _ _) (ENNReal.one_lt_top));
+        convert h_sum using 1;
+        constructor <;> intro h;
+        · convert h_sum using 1;
+        · convert h using 1;
+          constructor <;> intro h;
+          · convert h_sum using 1;
+          · convert ENNReal.summable.hasSum using 1;
+            convert h.symm using 1;
+            convert total_prob _ using 1
+    ⟩
     refine ⟨g, ⟨μ, hμ, rfl, ?_⟩, ?_⟩
     · intro x hx; cases x with
       | bot => exact Set.mem_univ _
       | coe x =>
           refine (k x).upcl ?_ (h x hx)
           intro y; simp only [DFunLike.coe, self_le_add_right, g]
-    · sorry
+    · -- Prove `htΔ : tsum Δ = (b - ν₂ ⊥) / b`
+      have htΔ : tsum Δ = ((μ.bind f) ⊥ - ν₂ ⊥) / (μ.bind f) ⊥ := by
+        have htΔ : tsum (fun y : β => ν₂ y - (μ.bind f) y) = (μ.bind f) ⊥ - ν₂ ⊥ := by
+          convert tsum_sub' _ _ using 1;
+          · rw [ prob_not_bot ν₂ ];
+            conv => rhs; arg 2; exact prob_not_bot _
+            rw [ tsub_right_comm, ENNReal.sub_sub_cancel ];
+            · rfl
+            · exact ENNReal.one_ne_top
+            · exact distr_upper_bound _ _
+          · conv => lhs; exact prob_not_bot _
+            exact ne_of_lt ( lt_of_le_of_lt ( tsub_le_self ) ( ENNReal.one_lt_top ) );
+          · exact fun y => hle y;
+        rw [ ← htΔ, ENNReal.div_eq_inv_mul ];
+        rw [ ← ENNReal.tsum_mul_left ] ; exact tsum_congr fun _ => by rw [ ENNReal.div_eq_inv_mul ]
+      refine PMF.ext fun x => ?_;
+      rcases x with ( _ | x ) <;> simp_all only [Set.mem_pi, PMF.mem_support_iff, ne_eq,
+        PMF.bind_apply];
+      · -- Substitute htΔ into the expression for the sum.
+        have h_sum :
+            ∑' a, μ a * (f a) ⊥ * (1 - tsum Δ) =
+            (μ.bind f) ⊥ * (1 - ((μ.bind f) ⊥ - ν₂ ⊥) / (μ.bind f) ⊥) := by
+          rw [ ENNReal.tsum_mul_right, PMF.bind_apply ];
+          rw [ htΔ ];
+        convert h_sum using 1;
+        · exact tsum_congr fun x => by rw [ mul_assoc ] ; rfl;
+        · rw [ ENNReal.mul_sub, mul_one, ENNReal.mul_div_cancel' ];
+          · rw [ ENNReal.sub_sub_cancel ];
+            · rfl;
+            · exact PMF.apply_ne_top (μ.bind f) ⊥
+            · exact dist_le_bot_ge hle
+          · grind;
+          · exact fun h => absurd h ( prob_not_top );
+          · exact fun _ _ =>
+              ne_of_lt ( lt_of_le_of_lt ( distr_upper_bound _ _ ) ( ENNReal.one_lt_top ) );
+      · convert congrArg₂ ( · + · )
+            (show ∑' a : WithBot α, μ a * ( f a ) ↑x = ( μ.bind f ) ↑x from ?_)
+            (show ∑' a : WithBot α, μ a * ( f a ⊥ * Δ x ) = ν₂ ↑x - ( μ.bind f ) ↑x from ?_) using 1
+        · rw [ ← ENNReal.tsum_add ] ; congr ; ext a ; simp only [g] ; ring_nf;
+          erw [ mul_add ] ; ring!;
+        · exact Eq.symm (add_tsub_cancel_of_le (hle x))
+        · rw [ PMF.bind_apply ];
+        · convert congrArg ( · * Δ x )
+            ( show ∑' a : WithBot α, μ a * ( f a ) ⊥ = ( μ.bind f ) ⊥ from ?_ ) using 1;
+          · simp +decide only [← mul_assoc, ENNReal.tsum_mul_right];
+          · rw [ ENNReal.mul_div_cancel' ];
+            · grind;
+            · exact fun h =>
+                absurd h (ne_of_lt (lt_of_le_of_lt (distr_upper_bound _ _) (ENNReal.one_lt_top)));
+          · rw [ PMF.bind_apply ]
 
 instance : Bind ConvexPowerset where
   bind {α β : Type} (s : ConvexPowerset α) (k : α → ConvexPowerset β) := {
