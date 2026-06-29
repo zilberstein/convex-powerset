@@ -30,8 +30,41 @@ def singleton {α : Type} (μ : PMF α) : ConvexPowerset α := {
 def prob {α ι : Type} (ξ : PMF ι) (s : ι → ConvexPowerset α) : ConvexPowerset α :=
     singleton ξ >>= s
 
-lemma prob_monotone {ι α : Type} (ξ : PMF ι) : Monotone (@prob α ι ξ) :=
+def prob_bernoulli {α : Type} {p : NNReal} (h : p ≤ 1) (s t : ConvexPowerset α) :
+    ConvexPowerset α :=
+  prob (PMF.bernoulli p h) fun b ↦ if b then s else t
+
+lemma prob_monotone {α ι : Type} (ξ : PMF ι) : Monotone (@prob α ι ξ) :=
   fun _ _ ↦ bind_monotone (le_refl _)
+
+end ConvexPowerset
+
+-- This really belongs in mathlib, but it doesn't exist
+namespace OmegaCompletePartialOrder
+
+def const {α : Type} [Preorder α] (x : α) : Chain α := {
+  toFun _ := x
+  monotone' _ _ _ := le_refl _
+}
+
+lemma ωSup_const {α : Type} [OmegaCompletePartialOrder α] (x : α) :
+    ωSup (const x) = x := by
+  refine le_antisymm (ωSup_le _ _ ?_) ?_
+  · intro _; exact le_refl _
+  · refine le_of_eq_of_le ?_ (le_ωSup _ 0); rfl
+
+end OmegaCompletePartialOrder
+
+namespace ConvexPowerset
+
+open OmegaCompletePartialOrder in
+lemma prob_continuous {α ι : Type} (ξ : PMF ι) :
+    ωScottContinuous (@prob α ι ξ) := by
+  refine ωScottContinuous.of_monotone_map_ωSup ⟨prob_monotone _, fun c ↦ ?_⟩
+  unfold prob
+  conv => lhs; arg 1; exact (OmegaCompletePartialOrder.ωSup_const (singleton ξ)).symm
+  refine (bind_continuous _ _).symm.trans (congrArg _ ?_)
+  ext1; ext1 i; rfl
 
 def singleton' {α : Type} (μ : Distr α) : ConvexPowerset α :=
     prob μ fun x ↦ match x with
@@ -168,5 +201,17 @@ lemma mem_nondet {ι α : Type} [Finite ι] [Nonempty ι] {s : ι → ConvexPowe
 
 lemma nondet_monotone {ι α : Type} [Finite ι] [Nonempty ι] : Monotone (@nondet ι α _ _) :=
   fun _ _ ↦ bind_monotone (le_refl _)
+
+open OmegaCompletePartialOrder in
+lemma nondet_continuous {α ι : Type} [Finite ι] [Nonempty ι] :
+    ωScottContinuous (@nondet ι α _ _) := by
+  refine ωScottContinuous.of_monotone_map_ωSup ⟨nondet_monotone, fun c ↦ ?_⟩
+  unfold nondet
+  conv => lhs; arg 1; exact (OmegaCompletePartialOrder.ωSup_const _).symm
+  refine (bind_continuous _ _).symm.trans (congrArg _ ?_)
+  ext1; ext1 i; rfl
+
+def nondet₂ {α : Type} (s t : ConvexPowerset α) :=
+  nondet fun (b : Bool) ↦ if b then s else t
 
 end ConvexPowerset
