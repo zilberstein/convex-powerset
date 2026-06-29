@@ -37,7 +37,7 @@ instance {α : Type} : Bot (ConvexPowerset α) where
     upcl _ _ _ _ := Set.mem_univ _
 }
 
-def with_bot {α β : Type} (f : α → ConvexPowerset β) (x : WithBot α) : ConvexPowerset β :=
+def with_bot {α β : Type} [Bot β] (f : α → β) (x : WithBot α) : β :=
   match x with
   | ⊥ => ⊥
   | WithBot.some y => f y

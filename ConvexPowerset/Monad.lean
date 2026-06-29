@@ -280,19 +280,21 @@ lemma c_bind_upcl {α β : Type} {s : ConvexPowerset α} {k : α → ConvexPower
                 absurd h (ne_of_lt (lt_of_le_of_lt (distr_upper_bound _ _) (ENNReal.one_lt_top)));
           · rw [ PMF.bind_apply ]
 
+def bind {α β : Type} (s : ConvexPowerset α) (k : α → ConvexPowerset β) : ConvexPowerset β := {
+  set := s.c_bind k
+  nonempty := c_bind_nonempty
+  convex := c_bind_convex
+  closed := c_bind_closed
+  upcl := c_bind_upcl
+}
+
 instance : Bind ConvexPowerset where
-  bind {α β : Type} (s : ConvexPowerset α) (k : α → ConvexPowerset β) := {
-    set := s.c_bind k
-    nonempty := c_bind_nonempty
-    convex := c_bind_convex
-    closed := c_bind_closed
-    upcl := c_bind_upcl
-  }
+  bind := bind
 
 instance : Monad ConvexPowerset where
 
 lemma pure_bind {α β : Type} (x : α) (k : α → ConvexPowerset β) : pure x >>= k = k x := by
-  simp only [bind, c_bind, pure]
+  simp only [Bind.bind, bind, c_bind, pure]
   ext d; constructor
   · rintro ⟨⟨μ, f⟩, ⟨_, ⟨_, rfl⟩, pp, ⟨rfl, rfl⟩, rfl, hf⟩, rfl⟩
     simp only [Function.uncurry, PMF.pure_bind]
@@ -424,7 +426,7 @@ lemma bind_bind_1 {α β γ : Type} (s : ConvexPowerset α) (f : α → ConvexPo
           ∃ ν ∈ μ.support.pi (set ∘ with_bot f),
           ∃ ξ ∈ (⋃ x ∈ μ.support, (ν x).support).pi (set ∘ with_bot g),
             d = PMF.bind (PMF.bind μ ν) ξ } := by
-  simp only [bind, c_bind, Set.image, Set.mem_iUnion, exists_prop, Prod.exists,
+  simp only [Bind.bind, bind, c_bind, Set.image, Set.mem_iUnion, exists_prop, Prod.exists,
     Function.uncurry_apply_pair, Set.mem_pi, PMF.mem_support_iff, ne_eq, Function.comp_apply,
     forall_exists_index, and_imp, PMF.bind_bind]
   ext d; constructor
@@ -459,7 +461,7 @@ lemma bind_bind_2 {α β γ : Type} (s : ConvexPowerset α) (f : α → ConvexPo
           ∃ ξ : WithBot α → WithBot β → Distr γ,
             (∀ x ∈ μ.support, ∀ y ∈ (ν x).support, ξ x y ∈ with_bot g y) ∧
             d = PMF.bind μ fun x ↦ PMF.bind (ν x) (ξ x) } := by
-  simp only [bind, c_bind, Set.image, Set.mem_iUnion, exists_prop, Prod.exists,
+  simp only [Bind.bind, bind, c_bind, Set.image, Set.mem_iUnion, exists_prop, Prod.exists,
     Function.uncurry_apply_pair, Set.mem_pi, PMF.mem_support_iff, ne_eq, Function.comp_apply]
   ext d; constructor
   · rintro ⟨μ, ξ, ⟨_, hμ, rfl, hξ⟩, rfl⟩
@@ -519,7 +521,7 @@ lemma bind_assoc {α β γ : Type} (s : ConvexPowerset α)
     exact bind_assoc_convex hξ
 
 lemma bind_pure {α : Type} (s : ConvexPowerset α) : s >>= pure = s := by
-  simp only [bind, c_bind, Set.image, pure, Set.mem_iUnion, exists_prop, Prod.exists,
+  simp only [Bind.bind, bind, c_bind, Set.image, pure, Set.mem_iUnion, exists_prop, Prod.exists,
     Function.uncurry_apply_pair]
   ext μ; constructor
   · rintro ⟨ν, f, ⟨_, hν, rfl, h⟩, rfl⟩

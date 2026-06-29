@@ -60,3 +60,28 @@ theorem prob_ne_top {p : ENNReal} (hp : p ≤ 1) : (p : ENNReal) ≠ ⊤ := by
   apply lt_top_iff_ne_top.mp
   refine lt_of_le_of_lt ?_ (ENNReal.one_lt_top)
   assumption
+
+namespace PMF
+
+def to_distr {α : Type} (μ : PMF α) : Distr α := {
+  val := fun x ↦ match x with
+  | Option.none => 0
+  | Option.some x => μ x
+  property := by
+    refine ENNReal.summable.hasSum_iff.mpr ?_
+    simp only [total_prob, PMF.tsum_coe, add_zero]
+}
+
+lemma to_distr_inv {α : Type} {μ : Distr α} (h : μ ⊥ = 0) :
+    ∃ d : PMF α, PMF.to_distr d = μ := by
+  refine ⟨⟨fun x ↦ μ x, ?_⟩, ?_⟩
+  · refine ENNReal.summable.hasSum_iff.mpr ?_
+    conv => rhs; exact (ENNReal.summable.hasSum_iff.mp μ.property).symm
+    rw [total_prob]
+    conv => rhs; arg 2; exact h
+    simp only [add_zero]; rfl
+  · ext x; cases x with
+    | bot => rw [h]; rfl
+    | coe x => rfl
+
+end PMF
