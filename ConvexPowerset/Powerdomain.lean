@@ -63,3 +63,6 @@ instance {α : Type} : OmegaCompletePartialOrder (ConvexPowerset α) where
     refine le_iff_supset.mpr ?_
     rintro μ hμ _ ⟨j, rfl⟩
     exact le_iff_supset.mp (h j) hμ
+
+lemma mem_ωSup {α : Type} {c : Chain (ConvexPowerset α)} {μ : Distr α} :
+    μ ∈ ωSup c ↔ ∀ i, μ ∈ c i := Set.mem_iInter
