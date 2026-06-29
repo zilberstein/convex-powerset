@@ -66,3 +66,11 @@ instance {α : Type} : OmegaCompletePartialOrder (ConvexPowerset α) where
 
 lemma mem_ωSup {α : Type} {c : Chain (ConvexPowerset α)} {μ : Distr α} :
     μ ∈ ωSup c ↔ ∀ i, μ ∈ c i := Set.mem_iInter
+
+namespace OmegaCompletePartialOrder
+
+-- Shortcut function that should exist in mathlib
+def lfp {α : Type} [OmegaCompletePartialOrder α] [OrderBot α] {f : α → α} (hf : Monotone f) :=
+  ωSup (fixedPoints.iterateChain ⟨f, hf⟩ ⊥ bot_le)
+
+end OmegaCompletePartialOrder

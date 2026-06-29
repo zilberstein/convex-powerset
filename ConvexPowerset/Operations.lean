@@ -30,7 +30,7 @@ def singleton {α : Type} (μ : PMF α) : ConvexPowerset α := {
 def prob {α ι : Type} (ξ : PMF ι) (s : ι → ConvexPowerset α) : ConvexPowerset α :=
     singleton ξ >>= s
 
-def prob_bernoulli {α : Type} {p : NNReal} (h : p ≤ 1) (s t : ConvexPowerset α) :
+def bernoulli {α : Type} {p : NNReal} (h : p ≤ 1) (s t : ConvexPowerset α) :
     ConvexPowerset α :=
   prob (PMF.bernoulli p h) fun b ↦ if b then s else t
 
