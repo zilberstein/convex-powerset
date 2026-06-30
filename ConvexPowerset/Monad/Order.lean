@@ -130,7 +130,6 @@ lemma distr_bind_iInter_subset {α β : Type}
     · intro s hs; refine mem_map.mpr ?_
       refine Ultrafilter.mem_map.mpr ?_
       simp only [Set.preimage, Set.mem_setOf_eq]; convert U.univ_sets
-      · rfl
       · ext i; constructor <;> intro _
         · exact Set.mem_univ _
         · simp only [Set.mem_setOf_eq]; conv => rhs; exact hpΦ i

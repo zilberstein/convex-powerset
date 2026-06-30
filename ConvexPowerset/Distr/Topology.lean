@@ -61,7 +61,7 @@ lemma infinitary_half_space_fin_approx {α : Type} (e : α → NNReal) (r : NNRe
         rw [← ENNReal.coe_tsum hs] at hb; exact ⟨hs, ENNReal.coe_le_coe.1 hb⟩
     }
     rw [he, ENNReal.tsum_eq_iSup_sum, iSup_le_iff]
-    apply forall_congr'; intro s; rw [← ENNReal.ofNNReal_finsetSum]; exact ENNReal.coe_le_coe
+    apply forall_congr'; intro s; rw [← ENNReal.coe_finsetSum]; exact ENNReal.coe_le_coe
   }
 
 -- Lemma B.4.3 of MM'05
@@ -275,7 +275,7 @@ lemma distr_tendsto_coord {Ω γ : Type} {l : Filter Ω} {d : Ω → Distr γ} {
   · simp only [Function.comp_apply, ENNReal.coe_toNNReal prob_not_top]
   · symm; exact ENNReal.coe_toNNReal prob_not_top
   · convert Tendsto.comp ( continuous_apply y |> Continuous.tendsto <| _ )
-      ( distr_inducing.continuous.tendsto _ |> Filter.Tendsto.comp <| hd ) using 1 <;> rfl
+      ( distr_inducing.continuous.tendsto _ |> Filter.Tendsto.comp <| hd ) using 1
 
 open Filter Topology in
 /-- `some`-coordinate lower bound for the limit of a bind: the non-escaping contribution `P` is
@@ -299,7 +299,7 @@ lemma bind_limit_some {α β Ω : Type} {l : Filter Ω} [l.NeBot]
       refine le_trans ?_ ( ENNReal.sum_le_tsum ?_ ); swap
       · exact T.map ( Function.Embedding.some );
       · simp only [Finset.sum_map]; rfl;
-    convert h_le using 1; rfl
+    convert h_le using 1;
   refine le_of_tendsto_of_tendsto' ( tendsto_finsetSum _ fun a _ =>
     ENNReal.Tendsto.mul ( hμ a ) ?_ ( hg a y ) ?_ ) ( hbind y ) h_sum_le;
   all_goals exact Or.inr ( prob_not_top )
@@ -366,7 +366,6 @@ lemma bind_limit_sumR {α β Ω : Type} {l : Filter Ω} [l.NeBot]
           have h_sum_le_one : ∑ y ∈ Tβ, (G w a) (some y) ≤ 1 := by
             have := ( G w a ).2;
             convert sum_le_hasSum _ _ this using 1;
-            · rfl
             rotate_left;
             · exact Tβ.map ( Function.Embedding.some );
             · exact fun _ _ => zero_le;
@@ -415,7 +414,7 @@ lemma bind_limit_sumR {α β Ω : Type} {l : Filter Ω} [l.NeBot]
       · refine ENNReal.summable.hasSum.comp ?_;
         exact Filter.tendsto_id
     generalize_proofs at *; (
-    convert le_of_tendsto_of_tendsto' tendsto_const_nhds h_limit h_finite using 1 <;> try rfl
+    convert le_of_tendsto_of_tendsto' tendsto_const_nhds h_limit h_finite using 1
     rw [ prob_bot ];
     ring!;))
   generalize_proofs at *; (
@@ -463,7 +462,6 @@ lemma bind_limit_bot {α β : Type} {μ : Distr α} {g : WithBot α → Distr β
     simp_all only [add_top, le_top, ENNReal.one_lt_top]
   rw [ hPb, prob_bot ];
   convert tsub_le_tsub_left hsumR ( 1 : ENNReal ) using 1
-  · rfl
   · rw [ prob_bot, tsub_tsub, add_comm ]
   · exact prob_bot ν
 
@@ -714,9 +712,8 @@ lemma cc_coord_tendsto {ι α : Type} {ξ : PMF ι} {f : ι → Distr α} {i₀ 
       exact ENNReal.summable.hasSum
     convert h_sum.add
       ( ENNReal.Tendsto.mul_const ( ENNReal.Tendsto.sub tendsto_const_nhds ( ξ.2 ) _ ) _ )
-        using 2 <;> norm_num <;> try rfl
-    · simp only [tsub_self, zero_mul, add_zero]
-    · right; exact prob_not_top
+        using 2 <;> norm_num
+    exact prob_not_top
 
 lemma countably_convex {ι α : Type} {s : Set (Distr α)} {ξ : PMF ι} {f : ι → Distr α}
     (h : ∀ i ∈ ξ.support, f i ∈ s)

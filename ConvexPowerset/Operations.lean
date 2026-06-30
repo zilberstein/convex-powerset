@@ -109,7 +109,7 @@ lemma singleton'_set_eq {α : Type} (μ : Distr α) :
     · conv => rhs; exact PMF.bind_apply _ _ _
       refine le_of_eq_of_le ?_ (ENNReal.le_tsum (some (some x)))
       simp only [DFunLike.coe, PMF.to_distr]
-      symm; convert mul_one _ <;> try rfl
+      symm; convert mul_one _
       have hx' : some (some x) ∈ (PMF.to_distr μ).support := by
         refine (PMF.mem_support_iff _ _).mpr ?_
         simp only [PMF.to_distr, DFunLike.coe]; exact hx
