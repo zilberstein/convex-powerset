@@ -368,11 +368,11 @@ lemma bind_limit_sumR {α β Ω : Type} {l : Filter Ω} [l.NeBot]
             convert sum_le_hasSum _ _ this using 1;
             rotate_left;
             · exact Tβ.map ( Function.Embedding.some );
-            · exact fun _ _ => zero_le _;
+            · exact fun _ _ => zero_le;
             · simp +decide [ Finset.sum_map ];
               rfl
           exact mul_le_of_le_one_right (by
-          exact zero_le _) h_sum_le_one;
+          exact zero_le) h_sum_le_one;
         · exact HasSum.tsum_eq ( F w |>.2 ) ▸ by norm_num;
         · rw [ show ( ∑' a : Option α, ( F w ) a ) = 1 from ?_ ];
           convert HasSum.tsum_eq ( F w |>.2 ) using 1
@@ -478,7 +478,7 @@ lemma bind_reconstruct {α β : Type} {μ : Distr α} {g : WithBot α → Distr 
   -- `add_tsub_cancel_of_le (hPle z)`).
   set R : WithBot β → ENNReal := fun z => ν z - ∑' a, μ (some a) * (g (some a)) z
   have hR_nonneg : ∀ z, 0 ≤ R z := by
-    exact fun z => zero_le _
+    exact fun z => zero_le
   have hR_eq : ∀ z, ν z = ∑' a, μ (some a) * (g (some a)) z + R z := by
     exact fun z => by rw [ add_tsub_cancel_of_le ( hPle z ) ] ;
   -- Now case on whether `μ ⊥ = 0`:
@@ -644,8 +644,8 @@ lemma ennreal_convex_finset_mem {ι' E : Type*} [AddCommMonoid E] [Module ENNRea
         · exact Finset.mem_insert.mpr (Or.inr hx)
         · exact left_ne_zero_of_mul h
     simp only [Finset.mem_insert, ne_eq, forall_eq_or_imp] at hz
-    convert hC (hz.1 hi') h_div ( show 0 ≤ w i from zero_le _ )
-      ( show 0 ≤ ∑ i ∈ t, w i from zero_le _ ) _ using 1;
+    convert hC (hz.1 hi') h_div ( show 0 ≤ w i from zero_le )
+      ( show 0 ≤ ∑ i ∈ t, w i from zero_le ) _ using 1;
     · conv => lhs; exact Finset.sum_insert hi
       refine congrArg₂ _ rfl ?_
       simp only [Finset.smul_sum, smul_smul]
