@@ -187,10 +187,8 @@ lemma c_bind_upcl {α β : Type} {s : ConvexPowerset α} {k : α → ConvexPower
               · have := prob_not_bot ( μ.bind f );
                 exact this.symm ▸ ne_of_lt (lt_of_le_of_lt tsub_le_self ENNReal.one_lt_top);
               · exact fun y => hle y;
-            have hkey : ∑' y : β, ν₂ (some y) = 1 - ν₂ ⊥ := by
-              convert prob_not_bot ν₂ using 1;
-            have hkey : ∑' y : β, (μ.bind f) (some y) = 1 - (μ.bind f) ⊥ := by
-              convert prob_not_bot ( μ.bind f ) using 1;
+            have hkey : ∑' y : β, ν₂ (some y) = 1 - ν₂ ⊥ := prob_not_bot ν₂
+            have hkey : ∑' y : β, (μ.bind f) (some y) = 1 - (μ.bind f) ⊥ := prob_not_bot (μ.bind f)
             simp_all only [Set.mem_pi, PMF.mem_support_iff, ne_eq, PMF.bind_apply,
               ENNReal.tsum_eq_zero, mul_eq_zero, not_forall, not_or, tsub_tsub];
             rw [ ENNReal.sub_eq_of_eq_add ];
@@ -199,8 +197,8 @@ lemma c_bind_upcl {α β : Type} {s : ConvexPowerset α} {k : α → ConvexPower
               exact ne_of_lt ( lt_of_le_of_lt ( distr_upper_bound _ _ ) ( ENNReal.one_lt_top ) );
             · rw [ ← add_assoc, tsub_add_cancel_of_le ];
               · rw [ add_tsub_cancel_of_le ];
-                convert distr_upper_bound ( μ.bind f ) ⊥ using 1;
-              · convert dist_le_bot_ge hle using 1;
+                exact distr_upper_bound (μ.bind f) ⊥
+              · exact dist_le_bot_ge hle
           convert congr_arg ( · / ( μ.bind f ) ⊥ ) h_tsum_delta using 1;
           simp +decide only [div_eq_mul_inv];
           exact ENNReal.tsum_mul_right
@@ -219,9 +217,9 @@ lemma c_bind_upcl {α β : Type} {s : ConvexPowerset α} {k : α → ConvexPower
         · convert h using 1;
           constructor <;> intro h;
           · convert h_sum using 1;
-          · convert ENNReal.summable.hasSum using 1;
-            convert h.symm using 1;
-            convert total_prob _ using 1
+          · conv => arg 2; exact h.symm
+            convert ENNReal.summable.hasSum using 1;
+            symm; exact total_prob _
     ⟩
     refine ⟨g, ⟨μ, hμ, rfl, ?_⟩, ?_⟩
     · intro x hx; cases x with

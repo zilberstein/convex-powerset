@@ -66,9 +66,7 @@ lemma bind_reconstruct_of_ultrafilter {α β : Type}
   have hbindc : ∀ y : β,
       Filter.Tendsto (fun w : Distr α × (WithBot α → Distr β) => (PMF.bind w.1 w.2) (some y))
         ↑W (nhds (ν (some y))) := by
-    intro y
-    have hco := distr_tendsto_coord hΦν y
-    simpa only [Function.uncurry] using hco
+    exact distr_tendsto_coord hΦν
   have hPtot : (∑' z : WithBot β, ∑' a : α, μ (some a) * g (some a) z) = 1 - μ ⊥ := P_tsum_eq
   have hPle : ∀ z : WithBot β, (∑' a : α, μ (some a) * g (some a) z) ≤ ν z := by
     intro z
@@ -137,10 +135,11 @@ lemma distr_bind_iInter_subset {α β : Type}
     · intro s hs; refine mem_map.mpr ?_
       refine Ultrafilter.mem_map.mpr ?_
       simp only [Set.preimage, Set.mem_setOf_eq]; convert U.univ_sets
-      ext i; constructor <;> intro _
-      · exact Set.mem_univ _
-      · simp only [Set.mem_setOf_eq]; conv => rhs; exact hpΦ i
-        exact mem_of_mem_nhds hs
+      · rfl
+      · ext i; constructor <;> intro _
+        · exact Set.mem_univ _
+        · simp only [Set.mem_setOf_eq]; conv => rhs; exact hpΦ i
+          exact mem_of_mem_nhds hs
   refine ⟨ ?_, ?_, ?_ ⟩;
   · exact ⟨ q.1, fun x => Option.elim x gbot fun a => q.2 ( some a ) ⟩;
   · simp_all only [Set.mem_iInter, Ultrafilter.coe_map, true_and, Set.mem_iUnion,

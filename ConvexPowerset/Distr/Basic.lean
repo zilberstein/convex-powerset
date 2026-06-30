@@ -11,7 +11,7 @@ def Distr (α : Type) := PMF (WithBot α)
 
 instance {α : Type} : FunLike (Distr α) (WithBot α) ENNReal where
   coe := Subtype.val
-  coe_injective' _ _ h := Subtype.ext h
+  coe_injective _ _ h := Subtype.ext h
 
 instance {α : Type} : Nonempty (Distr α) := Nonempty.intro (PMF.pure ⊥)
 

@@ -38,7 +38,7 @@ noncomputable instance {α : Type} : Bot (Distr α) where
 
 noncomputable instance {α : Type} : OrderBot (Distr α) where
   bot_le μ x := by
-    refine le_of_eq_of_le ?_ (zero_le _)
+    refine le_of_eq_of_le ?_ zero_le
     exact PMF.pure_apply_of_ne _ _ WithBot.coe_ne_bot
 
 /-- Monotone convergence for `tsum`: for a pointwise-monotone family of `ℝ≥0∞`-valued

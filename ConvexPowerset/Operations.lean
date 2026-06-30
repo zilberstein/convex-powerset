@@ -12,7 +12,9 @@ lemma convex_sum_mem {α : Type} {s : ConvexPowerset α} {μ ν : Distr α}
         ((Set.mem_image _ _ _).mpr ⟨_, hμ, rfl⟩)
         ((Set.mem_image _ _ _).mpr ⟨_, hν, rfl⟩)
         bot_le bot_le h)
-  convert hmem; exact Subtype.ext heq.symm
+  convert hmem
+  · rfl
+  · exact Subtype.ext heq.symm
 
 def singleton {α : Type} (μ : PMF α) : ConvexPowerset α := {
   set := { PMF.to_distr μ }
@@ -30,6 +32,7 @@ def singleton {α : Type} (μ : PMF α) : ConvexPowerset α := {
 def prob {α ι : Type} (ξ : PMF ι) (s : ι → ConvexPowerset α) : ConvexPowerset α :=
     singleton ξ >>= s
 
+set_option linter.deprecated false in
 def bernoulli {α : Type} {p : NNReal} (h : p ≤ 1) (s t : ConvexPowerset α) :
     ConvexPowerset α :=
   prob (PMF.bernoulli p h) fun b ↦ if b then s else t
@@ -107,7 +110,7 @@ lemma singleton'_set_eq {α : Type} (μ : Distr α) :
     · conv => rhs; exact PMF.bind_apply _ _ _
       refine le_of_eq_of_le ?_ (ENNReal.le_tsum (some (some x)))
       simp only [DFunLike.coe, PMF.to_distr]
-      symm; convert mul_one _
+      symm; convert mul_one _ <;> try rfl
       have hx' : some (some x) ∈ (PMF.to_distr μ).support := by
         refine (PMF.mem_support_iff _ _).mpr ?_
         simp only [PMF.to_distr, DFunLike.coe]; exact hx
@@ -124,7 +127,7 @@ lemma finite_distrs_closed {ι : Type} [Finite ι] :
   refine distr_inducing.isClosed_iff.mpr ⟨{ f | tsum f = 1 }, ?_, ?_⟩
   · refine isClosed_eq ?_ continuous_const
     have _ := Fintype.ofFinite ι; simp only [tsum_fintype]
-    exact continuous_finset_sum _ fun _ _ ↦ continuous_apply _
+    exact continuous_finsetSum _ fun _ _ ↦ continuous_apply _
   · simp only [Set.preimage_setOf_eq, distr_inj, Set.image_univ]; ext μ; constructor
     · intro hsum; refine Set.mem_range.mpr (PMF.to_distr_inv ?_)
       rw [prob_bot]

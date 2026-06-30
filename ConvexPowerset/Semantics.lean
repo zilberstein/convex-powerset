@@ -77,4 +77,13 @@ def sem (c : Cmd) (σ : Mem) : ConvexPowerset Mem :=
       OmegaCompletePartialOrder.lfp (Φ_monotone (sem c) e) σ
   | Cmd.assign x e => pure (σ.insert x (e σ))
 
+-- Example Program
+
+def geo : Cmd :=
+  "x" ::= literal 0 ;;
+  "b" ::= literal 1 ;;
+  Cmd.while_loop (var "b") (
+    ("b" ::= 0) ⊕[ literal 0.5 ] ("x" ::= fun σ ↦ σ "x" + 1)
+  )
+
 end Cmd
