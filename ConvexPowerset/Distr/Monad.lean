@@ -5,11 +5,6 @@ import ConvexPowerset.Distr.Basic
 noncomputable instance : Functor Distr where
   map f := PMF.map (Option.map f)
 
--- instance : LawfulFunctor Distr where
---   map_const := by
---     intro α β; ext x d y
---     refine (@LawfulFunctor.map_const PMF _ _).trans ?_
-
 noncomputable instance : Pure Distr where
   pure x := PMF.pure (some x)
 
