@@ -4,24 +4,24 @@ import ConvexPowerset.Distr.Monad
 
 -- The Probabilistic Powerdomain of Jones and Plotkin
 
-instance {α : Type} : LE (Distr α) where
+instance {α : Type*} : LE (Distr α) where
   le d₁ d₂ := ∀ x : α, d₁ x ≤ d₂ x
 
-noncomputable instance {α : Type} : Bot (Distr α) where
+noncomputable instance {α : Type*} : Bot (Distr α) where
   bot := PMF.pure ⊥
-noncomputable instance {α : Type} : OrderBot (Distr α) where
+noncomputable instance {α : Type*} : OrderBot (Distr α) where
   bot_le := by
     intro d x; refine le_of_eq_of_le (PMF.pure_apply_of_ne _ _ ?_) bot_le
     exact WithBot.coe_ne_bot
 
-instance {α : Type} : Preorder (Distr α) where
+instance {α : Type*} : Preorder (Distr α) where
   le_refl d x := le_refl (d x)
   le_trans :=  by {
     intros d₁ d₂ d₃ h₁ h₂ x
     apply le_trans (h₁ x) (h₂ x)
   }
 
-instance {α : Type} : PartialOrder (Distr α) where
+instance {α : Type*} : PartialOrder (Distr α) where
   le_antisymm := by
     intro d₁ d₂ h₁ h₂
     apply PMF.ext
@@ -33,17 +33,17 @@ instance {α : Type} : PartialOrder (Distr α) where
       assumption
     · apply h
 
-noncomputable instance {α : Type} : Bot (Distr α) where
+noncomputable instance {α : Type*} : Bot (Distr α) where
   bot := PMF.pure ⊥
 
-noncomputable instance {α : Type} : OrderBot (Distr α) where
+noncomputable instance {α : Type*} : OrderBot (Distr α) where
   bot_le μ x := by
     refine le_of_eq_of_le ?_ zero_le
     exact PMF.pure_apply_of_ne _ _ WithBot.coe_ne_bot
 
 /-- Monotone convergence for `tsum`: for a pointwise-monotone family of `ℝ≥0∞`-valued
 functions, the sum of the pointwise suprema is the supremum of the sums. -/
-lemma Distr.tsum_iSup_eq_iSup_tsum {α : Type} (f : ℕ → α → ENNReal)
+lemma Distr.tsum_iSup_eq_iSup_tsum {α : Type*} (f : ℕ → α → ENNReal)
     (hf : ∀ a, Monotone fun i ↦ f i a) :
     ∑' x : α, ⨆ i, f i x = ⨆ i, ∑' x : α, f i x := by
   rw [ENNReal.tsum_eq_iSup_sum]
@@ -51,7 +51,7 @@ lemma Distr.tsum_iSup_eq_iSup_tsum {α : Type} (f : ℕ → α → ENNReal)
   rw [iSup_comm]
   simp_rw [← ENNReal.tsum_eq_iSup_sum]
 
-noncomputable instance {α : Type} : OmegaCompletePartialOrder (Distr α) where
+noncomputable instance {α : Type*} : OmegaCompletePartialOrder (Distr α) where
   ωSup c := {
     val x :=
       match x with
@@ -72,7 +72,7 @@ noncomputable instance {α : Type} : OmegaCompletePartialOrder (Distr α) where
   le_ωSup c _ x := le_iSup (fun j ↦ c j x) _
   ωSup_le c _ h x := iSup_le fun j ↦ h j x
 
-lemma dist_le_bot_ge {α : Type} {μ : Distr α} {ν : Distr α} (hle : μ ≤ ν) : ν ⊥ ≤ μ ⊥ := by {
+lemma dist_le_bot_ge {α : Type*} {μ : Distr α} {ν : Distr α} (hle : μ ≤ ν) : ν ⊥ ≤ μ ⊥ := by {
   rw [prob_bot, prob_bot]; simp only [tsub_le_iff_right]
   have hs := ENNReal.tsum_le_tsum hle
   refine le_trans ?_ (add_le_add_right hs _)
@@ -87,7 +87,7 @@ lemma dist_le_bot_ge {α : Type} {μ : Distr α} {ν : Distr α} (hle : μ ≤ �
   all_goals { exact ne_top_of_le_ne_top (b := 1) (by simp) hle1 }
 }
 
-lemma proper_dist_maximal {α : Type} {μ ν : Distr α} (hbot : μ ⊥ = 0) (hle : μ ≤ ν) :
+lemma proper_dist_maximal {α : Type*} {μ ν : Distr α} (hbot : μ ⊥ = 0) (hle : μ ≤ ν) :
      μ = ν := by
   have hbot' : ν ⊥ = 0 := by
     refine le_antisymm ?_ bot_le
