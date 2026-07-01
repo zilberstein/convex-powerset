@@ -12,9 +12,8 @@ lemma bind_monotone {α β : Type u} {μ ν : Distr α} {f g : α → Distr β}
   · refine ENNReal.tsum_le_tsum fun x ↦ mul_le_mul (h _) (h' _ _) ?_ ?_<;> exact zero_le
   · simp only [PMF.pure_apply, WithBot.coe_ne_bot, ↓reduceIte, mul_zero, Std.le_refl]
 
-end Distr
+open OmegaCompletePartialOrder
 
-namespace OmegaCompletePartialOrder
 namespace Chain
 
 noncomputable def bind {α β : Type u}
@@ -29,11 +28,6 @@ noncomputable def bind {α β : Type u}
 }
 
 end Chain
-end OmegaCompletePartialOrder
-
-namespace Distr
-
-open OmegaCompletePartialOrder
 
 /-- For monotone sequences of extended non-negative reals, the product of the two
 suprema equals the supremum of the pointwise products. -/
@@ -50,7 +44,7 @@ lemma iSup_mul_iSup_of_monotone {f g : ℕ → ENNReal} (hf : Monotone f) (hg : 
 lemma bind_continuous {α β : Type u}
     (c : Chain (Distr α))
     (cf : Chain (α → Distr β)) :
-    ωSup (c.bind cf)  = (ωSup c) >>= (ωSup cf) := by
+    ωSup (Chain.bind c cf)  = (ωSup c) >>= (ωSup cf) := by
   refine le_antisymm ?_ ?_
   · refine ωSup_le _ _ fun i ↦ ?_
     refine bind_monotone ?_ ?_ <;> exact le_ωSup _ _
@@ -70,13 +64,13 @@ lemma bind_continuous {α β : Type u}
     have hmcf : ∀ x : α, Monotone (fun i => (cf i) x (↑y : WithBot β)) :=
       fun x _ _ hij => cf.monotone hij x y
     -- value of the bind on the right
-    have hbind : ∀ i, ((c.bind cf) i) (↑y : WithBot β)
+    have hbind : ∀ i, ((Chain.bind c cf) i) (↑y : WithBot β)
         = ∑' x : α, (c i) (↑x : WithBot α) * (cf i) x (↑y : WithBot β) := by
       intro i
       conv => lhs; exact (PMF.bind_apply _ _ _).trans (total_prob _)
       dsimp only
       rw [hp, mul_zero, add_zero]; rfl
-    have hRHS : (ωSup (c.bind cf)) (↑y : WithBot β)
+    have hRHS : (ωSup (Chain.bind c cf)) (↑y : WithBot β)
         = ⨆ i, ∑' x : α, (c i) (↑x : WithBot α) * (cf i) x (↑y : WithBot β) :=
       iSup_congr hbind
     rw [hRHS]

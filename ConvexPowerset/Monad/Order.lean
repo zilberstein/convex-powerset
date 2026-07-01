@@ -18,9 +18,8 @@ lemma bind_monotone {α β : Type}
   | bot => exact Set.mem_univ _
   | coe x => exact h' x (hf x hx)
 
-end ConvexPowerset
+open OmegaCompletePartialOrder
 
-namespace OmegaCompletePartialOrder
 namespace Chain
 
 def bind {α β : Type}
@@ -35,10 +34,6 @@ def bind {α β : Type}
 }
 
 end Chain
-end OmegaCompletePartialOrder
-
-namespace ConvexPowerset
-open OmegaCompletePartialOrder
 
 open Filter Topology in
 /-- Extraction of the reconstruction step of `bind_closed`: if an ultrafilter `W` on the product
@@ -156,7 +151,7 @@ lemma distr_bind_iInter_subset {α β : Type}
 lemma bind_continuous {α β : Type}
     (c : Chain (ConvexPowerset α))
     (cf : Chain (α → ConvexPowerset β)) :
-    ωSup (c.bind cf)  = (ωSup c).bind (ωSup cf) := by
+    ωSup (Chain.bind c cf)  = (ωSup c).bind (ωSup cf) := by
   refine le_antisymm ?_ ?_
   · refine ωSup_le _ _ fun i ↦ ?_
     refine bind_monotone ?_ ?_ <;> exact le_ωSup _ _
