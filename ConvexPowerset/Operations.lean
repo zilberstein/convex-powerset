@@ -12,8 +12,8 @@ lemma convex_sum_mem {α : Type} {s : ConvexPowerset α} {μ ν : Distr α}
         ((Set.mem_image _ _ _).mpr ⟨_, hμ, rfl⟩)
         ((Set.mem_image _ _ _).mpr ⟨_, hν, rfl⟩)
         bot_le bot_le h)
-  convert hmem
-  · exact Subtype.ext heq.symm
+  conv => arg 2; exact Subtype.ext heq.symm
+  exact hmem
 
 def singleton {α : Type} (μ : PMF α) : ConvexPowerset α := {
   set := { PMF.to_distr μ }
