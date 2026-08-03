@@ -129,12 +129,14 @@ lemma distr_bind_iInter_subset {α β : Type}
     · exact hq.2;
     · intro s hs; refine mem_map.mpr ?_
       refine Ultrafilter.mem_map.mpr ?_
-      simp only [Set.preimage, Set.mem_setOf_eq]; convert U.univ_sets
-      · rfl
-      · ext i; constructor <;> intro _
+      simp only [Set.preimage, Set.mem_setOf_eq]
+      have heq : {x | Function.uncurry PMF.bind (p x) ∈ s} = Set.univ := by
+        ext i; constructor <;> intro _
         · exact Set.mem_univ _
         · simp only [Set.mem_setOf_eq]; conv => rhs; exact hpΦ i
-          exact mem_of_mem_nhds hs
+          exact mem_of_mem_nhds hs (X := Distr β)
+      conv => rhs; exact heq
+      exact U.univ_sets
   refine ⟨ ?_, ?_, ?_ ⟩;
   · exact ⟨ q.1, fun x => Option.elim x gbot fun a => q.2 ( some a ) ⟩;
   · simp_all only [Set.mem_iInter, Ultrafilter.coe_map, true_and, Set.mem_iUnion,
