@@ -1,3 +1,7 @@
+/-
+Copyright (c) 2026 Noam Zilberstein. All rights reserved.
+Authors: Noam Zilberstein
+-/
 import ConvexPowerset.Basic
 
 def SmythOrd {α : Type} [LE α] (S T : Set α) :=

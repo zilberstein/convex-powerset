@@ -1,3 +1,7 @@
+/-
+Copyright (c) 2026 Noam Zilberstein. All rights reserved.
+Authors: Noam Zilberstein
+-/
 import Mathlib.Algebra.BigOperators.Field
 
 import ConvexPowerset.Distr.Basic

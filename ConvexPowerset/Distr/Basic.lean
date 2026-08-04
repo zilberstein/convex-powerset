@@ -1,3 +1,7 @@
+/-
+Copyright (c) 2026 Noam Zilberstein. All rights reserved.
+Authors: Noam Zilberstein
+-/
 import Init.Prelude
 
 import Mathlib.Algebra.CharP.Defs

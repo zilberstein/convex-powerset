@@ -1,3 +1,7 @@
+/-
+Copyright (c) 2026 Noam Zilberstein. All rights reserved.
+Authors: Noam Zilberstein
+-/
 import ConvexPowerset.Basic
 import ConvexPowerset.Distr.Monad
 import ConvexPowerset.Distr.Topology
