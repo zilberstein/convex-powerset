@@ -293,6 +293,25 @@ def bind {α β : Type} (s : ConvexPowerset α) (k : α → ConvexPowerset β) :
 instance : Bind ConvexPowerset where
   bind := bind
 
+lemma mem_pure {α : Type} (x : α) {μ : Distr α} :
+    μ ∈ (pure x : ConvexPowerset α) ↔ μ = PMF.pure (some x) := by
+  simp only [pure]; constructor
+  · rintro rfl; rfl
+  · rintro rfl; exact Set.mem_singleton _
+
+lemma mem_bind {α β : Type} {s : ConvexPowerset α}
+    {k : α → ConvexPowerset β} {ν : Distr β} :
+    ν ∈ s >>= k ↔
+    ∃ μ ∈ s,
+      ∃ f ∈ μ.support.pi fun x ↦ Option.elim x Set.univ (ConvexPowerset.set ∘ k),
+        ν = μ.bind f := by
+  constructor
+  · rintro ⟨⟨ξ, f⟩, ⟨_, ⟨_, rfl⟩, _, ⟨hξ, rfl⟩, rfl, hf⟩, rfl⟩
+    refine ⟨ξ, hξ, f, hf, ?_⟩; rfl
+  · rintro ⟨ξ, hξ, f, hf, rfl⟩; refine ⟨⟨ξ, f⟩, ?_⟩
+    simp only [Set.mem_iUnion, exists_prop, Function.uncurry_apply_pair]
+    exact ⟨⟨ξ, hξ, Set.mem_singleton _, hf⟩, True.intro⟩
+
 instance : Monad ConvexPowerset where
 
 end ConvexPowerset

@@ -7,12 +7,11 @@ import ConvexPowerset.Monad
 namespace ConvexPowerset
 
 lemma pure_bind {α β : Type} (x : α) (k : α → ConvexPowerset β) : pure x >>= k = k x := by
-  simp only [Bind.bind, bind, c_bind, pure]
   ext d; constructor
-  · rintro ⟨⟨μ, f⟩, ⟨_, ⟨_, rfl⟩, pp, ⟨rfl, rfl⟩, rfl, hf⟩, rfl⟩
-    simp only [Function.uncurry, PMF.pure_bind]
-    refine hf x ?_
-    simp only [PMF.support_pure, Set.mem_singleton_iff]; rfl
+  · intro hd; obtain ⟨μ, hμ, f, hf, rfl⟩ := mem_bind.mp hd
+    obtain rfl := (mem_pure _).mp hμ
+    conv => rhs; exact PMF.pure_bind _ ?_
+    refine hf x ?_; exact (PMF.mem_support_pure_iff _ _).mpr rfl
   · intro hd
     have h : ∀ z, ∃ d', (z = x → d' = d) ∧ d' ∈ k z := by
       intro z; by_cases hz : z = x
@@ -23,11 +22,12 @@ lemma pure_bind {α β : Type} (x : α) (k : α → ConvexPowerset β) : pure x 
     let g z := match z with
       | none => ⊥
       | some z' => f z'
-    simp only [Set.mem_image, Set.mem_iUnion, exists_prop, Prod.exists, Function.uncurry_apply_pair]
-    refine ⟨PMF.pure x, g, ⟨_, rfl, rfl, ?_⟩, ?_⟩
-    · simp only [PMF.support_pure, Set.singleton_pi, Set.mem_preimage, Function.eval, g]
+    refine mem_bind.mpr ⟨PMF.pure x, Set.mem_singleton _, g, ?_, ?_⟩
+    · apply Set.mem_pi.mpr; intro y hy
+      rcases (PMF.mem_support_pure_iff _ _).mp hy with rfl
+      simp only [Option.elim, Function.comp_apply, g]
       exact (hf x).2
-    · rw [PMF.pure_bind]; simp only [g]; exact (hf x).1 rfl
+    · rw [PMF.pure_bind]; simp only [g]; symm; exact (hf x).1 rfl
 
 noncomputable def pmf_with_bot {α β : Type} (f : α → Distr β) (x : WithBot α) : Distr β :=
   match x with
