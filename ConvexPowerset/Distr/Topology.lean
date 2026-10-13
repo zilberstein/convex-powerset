@@ -83,12 +83,13 @@ lemma to_distr_sum {α : Type} {f : α → NNReal} (h : Summable f) (h' : tsum f
     rcases h with ⟨r, hr⟩
     let g : α ⊕ PUnit.{1} → ENNReal := to_distr f ∘ (Equiv.optionEquivSumPUnit α).invFun
     have hs : HasSum (g ∘ Sum.inl) r := by {
-      have h : g ∘ Sum.inl = (↑) ∘ f := by ext x; simp [to_distr, g]
+      have h : g ∘ Sum.inl = (↑) ∘ f := by ext x; rfl
       rw [h]; exact ENNReal.hasSum_coe.2 hr
     }
     have ht : tsum f = r := (Summable.hasSum_iff ⟨r, hr⟩).1 hr
     have hn : HasSum (g ∘ Sum.inr) (1 - r) := by {
-      have h : g ∘ Sum.inr = fun _ => ↑(1 - r) := by ext x; simp [g, to_distr, ht]
+      have h : g ∘ Sum.inr = fun _ => ↑(1 - r) := by
+        ext x; show ((1 - tsum f : NNReal) : ENNReal) = _; rw [ht]
       rw [h]; apply hasSum_unique
     }
     have hh := HasSum.sum hs hn
@@ -128,7 +129,7 @@ lemma dist_invert {α : Type} {f : α → NNReal} (h : Summable f) (h' : tsum f 
     ∃ μ : Distr α, distr_inj μ = f := by
   have hl (x : WithBot α) : 0 ≤ to_distr f x := bot_le
   let μ : Distr α := Subtype.mk (to_distr f) (to_distr_sum h h')
-  use μ; ext x; simp [μ, distr_inj, to_distr, distr_coe]
+  use μ; funext x; exact ENNReal.toNNReal_coe (f x)
 
 -- The space of distributions can be decomposed as follows:
 --   Distr α = [0, 1]^α ∩ { f : α → NNReal | tsum f ≤ 1 }
@@ -193,7 +194,7 @@ lemma distr_bind_image {α β : Type} {s : Set (Distr α)} {k : α → Set (Dist
       intro x; by_cases h : x ∈ μ.support
       · exact ⟨f x, hf x h, fun _ => rfl⟩
       · match x with
-        | ⊥ => refine ⟨PMF.pure ⊥, by simp [Option.elim], fun hc => False.elim (h hc)⟩
+        | ⊥ => refine ⟨PMF.pure ⊥, Set.mem_univ _, fun hc => False.elim (h hc)⟩
         | WithBot.some z =>
           rcases (hne z) with ⟨y, hy⟩
           refine ⟨y, ?_, fun hc => False.elim (h hc)⟩
@@ -202,20 +203,17 @@ lemma distr_bind_image {α β : Type} {s : Set (Distr α)} {k : α → Set (Dist
     refine (Set.mem_image _ _ _).mpr ⟨⟨μ, g⟩, ?_, ?_⟩
     · refine Set.mem_prod.mpr ⟨hμ, ?_⟩
       refine Set.mem_pi.mpr ?_; intro x _; exact (hg x).1
-    · unfold PMF.bind; ext z; simp only [Function.uncurry_apply_pair, distr_coe]
-      refine tsum_congr ?_
-      intro x; by_cases hx : x ∈ μ.support
-      · rw [(hg x).2 hx]
-      · simp only [PMF.mem_support_iff, ne_eq, Decidable.not_not] at hx
-        rw [hx]; simp only [zero_mul]
+    · ext z
+      refine (PMF.bind_apply μ g z).trans
+        ((tsum_congr fun x => ?_).trans (PMF.bind_apply μ f z).symm)
+      by_cases hx : x ∈ μ.support
+      · exact congrArg (fun d : PMF (WithBot β) => μ x * d z) ((hg x).2 hx)
+      · simp [(PMF.apply_eq_zero_iff μ x).mpr hx]
   -- The reverse direction is immediate
   · rintro ⟨⟨μ, f⟩, hmem, rfl⟩
-    have ⟨hμ, hf⟩ := Set.mem_prod.mp hmem; simp only at *
-    simp only [distr_bind, Set.mem_image, Set.mem_iUnion, exists_prop, Prod.exists,
-      Function.uncurry_apply_pair]
-    refine ⟨μ, f, ⟨μ, hμ, ?_⟩, rfl⟩
-    · refine Set.mem_prod.mpr ⟨Set.mem_singleton _, ?_⟩
-      intro x _; exact hf x (Set.mem_univ _)
+    have ⟨hμ, hf⟩ := Set.mem_prod.mp hmem
+    refine ⟨(μ, f), Set.mem_iUnion₂.mpr ⟨μ, hμ, Set.mem_prod.mpr ⟨Set.mem_singleton _, ?_⟩⟩, rfl⟩
+    intro x _; exact hf x (Set.mem_univ _)
 
 instance {α : Type} : T2Space (Distr α) where
   t2 := by
@@ -273,13 +271,11 @@ open Filter Topology in
 lemma distr_tendsto_coord {Ω γ : Type} {l : Filter Ω} {d : Ω → Distr γ} {D : Distr γ}
     (hd : Tendsto d l (𝓝 D)) (y : γ) :
     Tendsto (fun w => (d w) (some y)) l (𝓝 (D (some y))) := by
-  convert
-    (ENNReal.continuous_coe.tendsto ( D ( some y ) |> ENNReal.toNNReal)).comp
-      ?_ (f := fun w => ( d w ) ( some y ) |> ENNReal.toNNReal)
-  · simp only [Function.comp_apply, ENNReal.coe_toNNReal prob_not_top]
-  · symm; exact ENNReal.coe_toNNReal prob_not_top
-  · convert Tendsto.comp ( continuous_apply y |> Continuous.tendsto <| _ )
-      ( distr_inducing.continuous.tendsto _ |> Filter.Tendsto.comp <| hd ) using 1 <;> rfl
+  have h := (ENNReal.continuous_coe.tendsto _).comp
+    (((continuous_apply y).tendsto _).comp ((distr_inducing.continuous.tendsto _).comp hd))
+  convert h using 1
+  · funext w; exact (ENNReal.coe_toNNReal prob_not_top).symm
+  · exact congrArg _ (ENNReal.coe_toNNReal prob_not_top).symm
 
 open Filter Topology in
 /-- `some`-coordinate lower bound for the limit of a bind: the non-escaping contribution `P` is
@@ -302,8 +298,9 @@ lemma bind_limit_some {α β Ω : Type} {l : Filter Ω} [l.NeBot]
         ∑ a ∈ T, (F w) (some a) * (G w (some a)) (some y) ≤ ∑' a, (F w) a * (G w a) (some y) := by
       refine le_trans ?_ ( ENNReal.sum_le_tsum ?_ ); swap
       · exact T.map ( Function.Embedding.some );
-      · simp only [Finset.sum_map]; rfl;
-    convert h_le using 1; rfl
+      · exact (Finset.sum_map T Function.Embedding.some
+          (fun a : WithBot α => (F w) a * (G w a) (some y))).symm.le
+    exact le_of_le_of_eq h_le (PMF.bind_apply _ _ _).symm
   refine le_of_tendsto_of_tendsto' ( tendsto_finsetSum _ fun a _ =>
     ENNReal.Tendsto.mul ( hμ a ) ?_ ( hg a y ) ?_ ) ( hbind y ) h_sum_le;
   all_goals exact Or.inr ( prob_not_top )
@@ -362,25 +359,20 @@ lemma bind_limit_sumR {α β Ω : Type} {l : Filter Ω} [l.NeBot]
             ∑' a, (F w) a * (∑ y ∈ Tβ, (G w a) (some y)) := by
           simp only [PMF.bind_apply, Finset.mul_sum _ _ _];
           symm; exact Summable.tsum_finsetSum fun _ _ ↦ ENNReal.summable
-        convert tsum_le_sum_add_tail ( Tα.map ( Function.Embedding.some ) )
-          (b := fun a => ( F w ) a) _ _ using 1 <;>
-          norm_num [ Finset.sum_map ];
-        rotate_left;
-        · intro a
-          have h_sum_le_one : ∑ y ∈ Tβ, (G w a) (some y) ≤ 1 := by
-            have := ( G w a ).2;
-            convert sum_le_hasSum _ _ this using 1;
-            · rfl
-            rotate_left;
-            · exact Tβ.map ( Function.Embedding.some );
-            · exact fun _ _ => zero_le;
-            · simp +decide [ Finset.sum_map ];
-              rfl
-          exact mul_le_of_le_one_right zero_le h_sum_le_one;
-        · exact HasSum.tsum_eq ( F w |>.2 ) ▸ by norm_num;
-        · rw [ show ( ∑' a : WithBot α, ( F w ) a ) = 1 from ?_ ]
-          · rfl
-          · exact HasSum.tsum_eq ( F w |>.2 )
+        have hc : ∀ a, (F w) a * (∑ y ∈ Tβ, (G w a) (some y)) ≤ (F w) a := by
+          intro a
+          refine mul_le_of_le_one_right zero_le ?_
+          calc ∑ y ∈ Tβ, (G w a) (some y)
+              = ∑ y ∈ Tβ.map Function.Embedding.some, (G w a) y :=
+                (Finset.sum_map Tβ Function.Embedding.some (fun y : WithBot β => (G w a) y)).symm
+            _ ≤ ∑' y, (G w a) y := ENNReal.sum_le_tsum _
+            _ = 1 := PMF.tsum_coe _
+        let e : α ↪ WithBot α := ⟨WithBot.some, WithBot.coe_injective⟩
+        have h1 : ∑' a, (F w) a = 1 := PMF.tsum_coe (F w)
+        have h := tsum_le_sum_add_tail (Tα.map e) hc (by rw [h1]; exact ENNReal.one_ne_top)
+        rw [h_tail_bound]
+        refine le_of_le_of_eq h ?_
+        rw [h1, Finset.sum_map, Finset.sum_map]; rfl
       generalize_proofs at *; (
       have h_limit :
           Filter.Tendsto (fun w => ∑ y ∈ Tβ, (PMF.bind (F w) (G w)) (some y)) l
@@ -414,8 +406,8 @@ lemma bind_limit_sumR {α β Ω : Type} {l : Filter Ω} [l.NeBot]
             Filter.atTop (nhds (1 - ∑' a, μ (some a)
               + ∑' a, μ (some a) * (∑ y ∈ Tβ, (g (some a)) (some y)))) := by
       refine Filter.Tendsto.add ?_ ?_;
-      · refine ENNReal.Tendsto.sub tendsto_const_nhds ?_ ?_ <;> norm_num +zetaDelta at *;
-        exact ENNReal.summable.hasSum
+      · exact ENNReal.Tendsto.sub tendsto_const_nhds ENNReal.summable.hasSum
+          (Or.inl ENNReal.one_ne_top)
       · refine ENNReal.summable.hasSum.comp ?_;
         exact Filter.tendsto_id
     generalize_proofs at *; (
@@ -467,7 +459,6 @@ lemma bind_limit_bot {α β : Type} {μ : Distr α} {g : WithBot α → Distr β
     simp_all only [add_top, le_top, ENNReal.one_lt_top]
   rw [ hPb, prob_bot ];
   convert tsub_le_tsub_left hsumR ( 1 : ENNReal ) using 1
-  · rfl
   · rw [ prob_bot, tsub_tsub, add_comm ]
   · exact prob_bot ν
 
@@ -515,7 +506,7 @@ lemma bind_reconstruct {α β : Type} {μ : Distr α} {g : WithBot α → Distr 
     refine ⟨ PMF.pure ⊥, ?_ ⟩;
     ext z
     conv => rhs; exact hR_eq z
-    rw [ hR_zero z, add_zero, PMF.bind_apply, total_prob ];
+    rw [ hR_zero z, add_zero ]; refine (PMF.bind_apply _ _ z).trans ?_; rw [ total_prob ]
     conv => lhs; arg 2; arg 1; exact hμbot
     simp only [zero_mul, add_zero]; refine congrArg tsum ?_; ext x; rfl
   · -- Define `gbot : Distr β := ⟨fun z => R z / μ ⊥, _⟩`, where the `HasSum _ 1` proof comes from
@@ -543,7 +534,7 @@ lemma bind_reconstruct {α β : Type} {μ : Distr α} {g : WithBot α → Distr 
         exact hR_sum_div.symm ⟩, fun z => rfl ⟩
     use gbot
     ext z
-    simp only [PMF.bind_apply, total_prob, Option.elim];
+    refine (PMF.bind_apply _ _ z).trans ?_; simp only [total_prob, Option.elim]
     conv => lhs; arg 2; arg 2; exact hgbot z
     conv =>
       lhs; arg 2;
@@ -574,7 +565,7 @@ lemma bind_closed {α β : Type} {s : Set (Distr α)} {k : α → Set (Distr β)
   -- mass can escape to `⊥`), so the image of the compact set `hc` cannot be shown closed by the
   -- naive continuity argument.  Instead we extract an ultrafilter cluster point and reconstruct the
   -- limit distribution explicitly, letting the unconstrained choice at `⊥` absorb the escaped mass.
-  rw [isClosed_iff_clusterPt]
+  refine isClosed_iff_clusterPt.mpr ?_
   intro ν hν
   obtain ⟨W, ⟨μ, g⟩, hpK, hWp, hΦν⟩ :=
     exists_ultrafilter_of_clusterPt_image
@@ -719,8 +710,7 @@ lemma cc_coord_tendsto {ι α : Type} {ξ : PMF ι} {f : ι → Distr α} {i₀ 
     convert h_sum.add
       ( ENNReal.Tendsto.mul_const ( ENNReal.Tendsto.sub tendsto_const_nhds ( ξ.2 ) _ ) _ )
         using 2 <;> norm_num <;> try rfl
-    · simp only [tsub_self, zero_mul, add_zero]
-    · right; exact prob_not_top
+    exact prob_not_top
 
 lemma countably_convex {ι α : Type} {s : Set (Distr α)} {ξ : PMF ι} {f : ι → Distr α}
     (h : ∀ i ∈ ξ.support, f i ∈ s)
@@ -737,10 +727,12 @@ lemma countably_convex {ι α : Type} {s : Set (Distr α)} {ξ : PMF ι} {f : ι
   let dd : Finset ι → Distr α := fun F =>
     if hF : i₀ ∈ F then (hmem F hF).choose else f i₀
   have hdd_mem : ∀ F : Finset ι, i₀ ∈ F → dd F ∈ s := by
-    intro F hF; simp only [dd, dif_pos hF]; exact (hmem F hF).choose_spec.1
+    intro F hF; rw [show dd F = (hmem F hF).choose from dif_pos hF]
+    exact (hmem F hF).choose_spec.1
   have hdd_val : ∀ F : Finset ι, i₀ ∈ F →
       (dd F).val = (∑ i ∈ F, ξ i • (f i).val + (1 - ∑ i ∈ F, ξ i) • (f i₀).val) := by
-    intro F hF; simp only [dd, dif_pos hF]; exact (hmem F hF).choose_spec.2
+    intro F hF; rw [show dd F = (hmem F hF).choose from dif_pos hF]
+    exact (hmem F hF).choose_spec.2
   -- the truncations converge to δ in the (induced) topology on `Distr α`
   have htend : Filter.Tendsto dd Filter.atTop (nhds δ) := by
     rw [distr_inducing.tendsto_nhds_iff, tendsto_pi_nhds]

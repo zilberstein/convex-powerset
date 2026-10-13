@@ -78,27 +78,27 @@ def singleton' {α : Type} (μ : Distr α) : ConvexPowerset α :=
     | Option.some x => pure x
 
 lemma self_mem_singleton' {α : Type} (μ : Distr α) : μ ∈ singleton' μ := by
-  simp only [singleton', prob, Bind.bind, bind, c_bind, Set.image, Set.mem_iUnion, exists_prop,
-    Function.uncurry, Prod.exists]
-  refine ⟨μ.to_distr, ?_, ⟨_, rfl, rfl, ?_⟩, ?_⟩
-  · use fun x ↦ pure
-      (match x with
-        | Option.none => ⊥
-        | Option.some x => x)
-  · refine Set.mem_pi.mpr fun x hx ↦ ?_; simp only; cases x with
+  let f : WithBot (WithBot α) → Distr α := fun x ↦ PMF.pure
+    (match x with
+      | Option.none => (⊥ : WithBot α)
+      | Option.some x => x)
+  show μ ∈ (singleton' μ).set
+  refine ⟨(μ.to_distr, f), Set.mem_iUnion₂.mpr ⟨μ.to_distr, rfl, Set.mem_prod.mpr ⟨rfl, ?_⟩⟩, ?_⟩
+  · intro x hx; cases x with
     | bot => exact Set.mem_univ _
-    | coe x => simp only [Option.elim, Function.comp_apply]; cases x with
+    | coe x => cases x with
       | bot => exact Set.mem_univ _
       | coe x => rfl
-  · refine (PMF.bind_pure_comp _ _).trans ?_; ext x
-    simp only [PMF.to_distr, PMF.map_apply]
-    refine (@tsum_eq_single _ _ _ _ _
-      (SummationFilter.instLeAtTopUnconditional _) _ (Option.some x) ?_).trans ?_
-    · intro y hy; cases y with
-      | none => simp only [DFunLike.coe, ite_self]
-      | some y =>
-        simp only [ite_eq_right_iff]; rintro rfl; contradiction
-    · simp only [↓reduceIte, DFunLike.coe]
+  · ext x
+    show (PMF.bind μ.to_distr f) x = μ x
+    refine (PMF.bind_apply _ _ x).trans ?_
+    rw [tsum_eq_single (WithBot.some x : WithBot (WithBot α))]
+    · show μ x * (PMF.pure x) x = μ x
+      rw [PMF.pure_apply_self, mul_one]
+    · intro y hy; rcases y with _ | y
+      · exact zero_mul _
+      · show μ y * (PMF.pure y) x = 0
+        rw [PMF.pure_apply_of_ne _ _ (fun h => hy (congrArg WithBot.some h.symm)), mul_zero]
 
 lemma singleton'_set_eq {α : Type} (μ : Distr α) :
     (singleton' μ).set = { ν | μ ≤ ν } := by
@@ -144,10 +144,11 @@ lemma finite_distrs_closed {ι : Type} [Finite ι] :
         refine ne_top_of_le_ne_top ENNReal.one_ne_top ?_
         rw [← μ.property.tsum_eq, total_prob]; exact le_self_add
     · rintro ⟨μ, rfl⟩
-      simp only [DFunLike.coe, Function.comp_def, PMF.to_distr, Set.mem_setOf_eq]
-      rw [← ENNReal.tsum_toNNReal_eq, HasSum.tsum_eq μ.property]
-      · rfl
-      · intro x; exact ne_top_of_le_ne_top ENNReal.one_ne_top (PMF.coe_le_one _ _)
+      show ∑' x : ι, ((PMF.to_distr μ) (some x)).toNNReal = 1
+      calc ∑' x : ι, ((PMF.to_distr μ) (some x)).toNNReal
+          = ∑' x : ι, (μ x).toNNReal := rfl
+        _ = (∑' x, μ x).toNNReal := (ENNReal.tsum_toNNReal_eq fun x => PMF.apply_ne_top μ x).symm
+        _ = 1 := by rw [PMF.tsum_coe, ENNReal.toNNReal_one]
 
 -- Construct a convex powerset as the convex hull of a finite type
 def finitely_generated {ι : Type} [Finite ι] [Nonempty ι] : ConvexPowerset ι := {
@@ -190,9 +191,10 @@ lemma mem_nondet {ι α : Type} [Finite ι] [Nonempty ι] {s : ι → ConvexPowe
     refine ⟨ξ, fun x ↦ f x, ?_, ?_⟩
     · refine Set.mem_pi.mpr ?_; intro i hi
       exact Set.mem_pi.mp hf i hi
-    · ext x; simp only [DFunLike.coe, PMF.bind, total_prob]
-      conv => lhs; arg 2; exact zero_mul _
-      rw [add_zero]; rfl
+    · ext x
+      refine ((PMF.bind_apply _ _ x).trans (total_prob _)).trans ?_
+      refine ((congrArg₂ (· + ·) rfl (zero_mul _)).trans (add_zero _)).trans ?_
+      exact (PMF.bind_apply _ _ x).symm
   · rintro ⟨ξ, f, hf, rfl⟩
     refine ⟨PMF.to_distr ξ, with_bot f (β := Distr α), ?_, ?_⟩
     · refine Set.mem_biUnion ?_ ⟨rfl, ?_⟩ (x := PMF.to_distr ξ)
@@ -203,7 +205,9 @@ lemma mem_nondet {ι α : Type} [Finite ι] [Nonempty ι] {s : ι → ConvexPowe
           simp only [Option.elim, Function.comp_apply, with_bot]
           exact Set.mem_pi.mp hf i hi
     · ext x
-      simp only [DFunLike.coe, PMF.bind, PMF.to_distr, total_prob, zero_mul, add_zero, with_bot]
+      refine ((PMF.bind_apply _ _ x).trans (total_prob _)).trans ?_
+      refine ((congrArg₂ (· + ·) rfl (zero_mul _)).trans (add_zero _)).trans ?_
+      exact (PMF.bind_apply _ _ x).symm
 
 lemma nondet_monotone {ι α : Type} [Finite ι] [Nonempty ι] : Monotone (@nondet ι α _ _) :=
   fun _ _ ↦ bind_monotone (le_refl _)

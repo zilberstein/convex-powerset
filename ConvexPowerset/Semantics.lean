@@ -57,11 +57,14 @@ lemma Φ_continuous (c : Mem → ConvexPowerset Mem) (e : Expr) : ωScottContinu
   by_cases h : e σ = 1 <;> simp only [h, ↓reduceIte]
   · conv => lhs; arg 1; exact (OmegaCompletePartialOrder.ωSup_const _).symm
     refine (ConvexPowerset.bind_continuous _ _).symm.trans (congrArg _ ?_)
-    ext1; ext1 i; simp only [Chain.coe_map, Pi.evalOrderHom_coe, OrderHom.coe_mk,
-      Function.comp_apply, Function.eval, h, ↓reduceIte]; rfl
+    ext1; ext1 i
+    show c σ >>= ch i = if e σ = 1 then c σ >>= ch i else if e σ = 0 then pure σ else ⊥
+    rw [if_pos h]
   · refine (OmegaCompletePartialOrder.ωSup_const _).symm.trans (congrArg _ ?_)
-    ext1; ext1 i; simp only [const, Chain.map, OrderHom.comp, Pi.evalOrderHom_coe, OrderHom.coe_mk,
-      Chain.coe_toOrderHom, Function.comp_def, Function.eval, h, ↓reduceIte]
+    ext1; ext1 i
+    show (if e σ = 0 then pure σ else ⊥) =
+      if e σ = 1 then c σ >>= ch i else if e σ = 0 then pure σ else ⊥
+    rw [if_neg h]
 
 def with_prob {α : Type} (v : Val) (f : {p : NNReal} → p ≤ 1 → ConvexPowerset α) :
     ConvexPowerset α :=

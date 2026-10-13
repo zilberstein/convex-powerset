@@ -108,7 +108,7 @@ lemma prob_distr_bind {β : Type} {μ : Distr α} {g : WithBot α → Distr β} 
 lemma prob_bot_distr {β : Type} (E : Set β) :
     ∑' y : E, (PMF.pure (⊥ : WithBot β) : Distr β) (some (y : β)) = 0 := by
   have h : ∀ y : β, (PMF.pure (⊥ : WithBot β) : Distr β) (some y) = 0 :=
-    fun y ↦ PMF.pure_apply_of_ne _ _ (by simp)
+    fun y ↦ PMF.pure_apply_of_ne _ _ WithBot.coe_ne_bot
   simp [h]
 
 /-- Summing the weights `μ x * minProb (f x) E` over the support of `μ` is the same as summing
@@ -156,7 +156,7 @@ lemma le_minProb_bind {β : Type} (s : ConvexPowerset α) (f : α → ConvexPowe
   refine ENNReal.tsum_le_tsum fun x ↦ ?_
   by_cases hx : WithBot.some x ∈ μ.support
   · exact mul_le_mul' le_rfl (biInf_le _ (hg (some x) hx))
-  · simp only [PMF.mem_support_iff, ne_eq, Decidable.not_not] at hx
+  · replace hx : μ (some x) = 0 := by by_contra hc; exact hx hc
     exact le_of_eq_of_le (mul_eq_zero_of_left hx _) bot_le
 
 lemma minProb_bind {β : Type} (s : ConvexPowerset α) (f : α → ConvexPowerset β) (E : Set β) :

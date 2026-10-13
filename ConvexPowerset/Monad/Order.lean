@@ -13,10 +13,10 @@ lemma bind_monotone {α β : Type}
   apply le_iff_supset.mp at h
   have h' x := le_iff_supset.mp (h' x)
   refine le_iff_supset.mpr ?_
-  simp only [bind, c_bind, Set.image, Set.mem_iUnion, exists_prop, Function.uncurry, Prod.exists,
-    Set.setOf_subset_setOf, forall_exists_index, and_imp]
-  intro _ μ f' _ hμ ⟨rfl, hf⟩ rfl
-  refine ⟨μ, f', ⟨μ, h hμ, rfl, ?_⟩, rfl⟩
+  rintro _ ⟨⟨μ, f'⟩, hmem, rfl⟩
+  obtain ⟨_, hμ, hmem⟩ := Set.mem_iUnion₂.mp hmem
+  obtain ⟨rfl, hf⟩ := Set.mem_prod.mp hmem
+  refine ⟨⟨μ, f'⟩, Set.mem_iUnion₂.mpr ⟨μ, h hμ, Set.mem_prod.mpr ⟨rfl, ?_⟩⟩, rfl⟩
   refine Set.mem_pi.mpr fun x hx ↦ ?_
   cases x with
   | bot => exact Set.mem_univ _
@@ -92,8 +92,10 @@ lemma distr_bind_iInter_subset {α β : Type}
       ∃ p : ℕ → Distr α × (WithBot α → Distr β),
         (∀ i, p i ∈ (A i) ×ˢ Set.univ.pi (Option.elim · Set.univ (K i))) ∧
         (∀ i, (Function.uncurry PMF.bind) (p i) = ν) := by
-    simp_all only [implies_true, distr_bind_image, Set.mem_iInter];
-    choose a ha hb using hν; exact ⟨a, ha, hb⟩
+    have hν' i : ν ∈ Function.uncurry PMF.bind ''
+        ((A i) ×ˢ Set.univ.pi (Option.elim · Set.univ (K i))) := by
+      rw [← distr_bind_image (hKne i)]; exact Set.mem_iInter.mp hν i
+    choose a ha hb using hν'; exact ⟨a, ha, hb⟩
   obtain ⟨U, hU⟩ : ∃ U : Ultrafilter ℕ, (U : Filter ℕ) ≤ Filter.atTop :=
     Ultrafilter.exists_le _
   obtain ⟨q, hq⟩ :
@@ -143,10 +145,8 @@ lemma distr_bind_iInter_subset {α β : Type}
       exact U.univ_sets
   refine ⟨ ?_, ?_, ?_ ⟩;
   · exact ⟨ q.1, fun x => Option.elim x gbot fun a => q.2 ( some a ) ⟩;
-  · simp_all only [Set.mem_iInter, Ultrafilter.coe_map, true_and, Set.mem_iUnion,
-    exists_prop];
-    refine ⟨q.1, ?_, rfl, ?_⟩
-    · intro i; exact (hq_mem i).1
+  · refine Set.mem_iUnion₂.mpr ⟨q.1, ?_, Set.mem_prod.mpr ⟨rfl, ?_⟩⟩
+    · exact Set.mem_iInter.mpr fun i => (hq_mem i).1
     · simp only [Set.mem_pi, PMF.mem_support_iff, ne_eq]; intro i hi
       cases i with
       | bot => exact Set.mem_univ _

@@ -80,13 +80,8 @@ lemma dist_le_bot_ge {α : Type*} {μ : Distr α} {ν : Distr α} (hle : μ ≤ 
   rw [prob_bot, prob_bot]; simp only [tsub_le_iff_right]
   have hs := ENNReal.tsum_le_tsum hle
   refine le_trans ?_ (add_le_add_right hs _)
-  have hle1 : ∑' (x : α), μ x ≤ 1 := by {
-    rcases μ with ⟨d, h⟩; simp only [distr_coe] at *; rw [← HasSum.tsum_eq h]
-    exact Summable.tsum_le_tsum_of_inj WithBot.some WithBot.coe_injective (by simp)
-      (fun x => le_refl (d ↑x))
-      ENNReal.summable
-      ENNReal.summable
-  }
+  have hle1 : ∑' (x : α), μ x ≤ 1 := by
+    rw [prob_not_bot]; exact tsub_le_self
   rw [ENNReal.sub_add_eq_add_sub hle1, ENNReal.add_sub_cancel_right]
   all_goals { exact ne_top_of_le_ne_top (b := 1) (by simp) hle1 }
 }
