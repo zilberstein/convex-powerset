@@ -32,7 +32,7 @@ instance {α : Type} : Bot (ConvexPowerset α) where
     set := Set.univ
     nonempty := Set.univ_nonempty
     convex := by
-      convert hassum_1_convex; ext d; constructor
+      convert hassum_1_convex using 1; ext d; constructor
       · rintro ⟨μ, _, rfl⟩; exact μ.2
       · intro hs; exact ⟨⟨d, hs⟩, Set.mem_univ _, rfl⟩
     closed := isClosed_univ

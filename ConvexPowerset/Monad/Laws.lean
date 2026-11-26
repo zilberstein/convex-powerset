@@ -126,15 +126,12 @@ lemma bind_assoc_convex {α β γ : Type} {μ : Distr α} {ν : WithBot α → D
 lemma bind_union {α β : Type} (s : ConvexPowerset α) (f : α → ConvexPowerset β) :
     set (bind s f) =
     ⋃ μ ∈ s, PMF.bind μ '' (μ.support.pi (Option.elim · Set.univ (set ∘ f))) := by
-  simp only [bind, c_bind]; ext ν
+  ext ν; change ν ∈ s >>= f ↔ _; rw [mem_bind]
   constructor
-  · rintro ⟨⟨p, g⟩, hmem, rfl⟩
-    obtain ⟨_, hp, hmem⟩ := Set.mem_iUnion₂.mp hmem
-    obtain ⟨rfl, hsupp⟩ := Set.mem_prod.mp hmem
-    exact Set.mem_iUnion₂.mpr ⟨p, hp, ⟨g, hsupp, rfl⟩⟩
+  · rintro ⟨μ, hμ, g, hg, rfl⟩; exact Set.mem_iUnion₂.mpr ⟨μ, hμ, g, hg, rfl⟩
   · intro hν
     obtain ⟨μ, hμ, g, hg, rfl⟩ := Set.mem_iUnion₂.mp hν
-    exact ⟨(μ, g), Set.mem_iUnion₂.mpr ⟨μ, hμ, Set.mem_prod.mpr ⟨rfl, hg⟩⟩, rfl⟩
+    exact ⟨μ, hμ, g, hg, rfl⟩
 
 lemma bind_bind_1 {α β γ : Type} (s : ConvexPowerset α) (f : α → ConvexPowerset β)
     (g : β → ConvexPowerset γ) :

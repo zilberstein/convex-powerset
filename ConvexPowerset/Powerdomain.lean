@@ -51,8 +51,8 @@ lemma chain_inter_nonempty {α : Type} (c : Chain (ConvexPowerset α)) :
 
 lemma chain_inter_convex {α : Type} (c : Chain (ConvexPowerset α)) :
     Convex ENNReal (Subtype.val '' Set.iInter fun i ↦ (c i).set) := by
-  convert convex_iInter fun i ↦ (c i).convex
-  exact Set.image_val_iInter
+  convert convex_iInter fun i ↦ (c i).convex using 2
+  exact Subtype.val_injective.injOn.image_iInter_eq
 
 instance {α : Type} : OmegaCompletePartialOrder (ConvexPowerset α) where
   ωSup c := {

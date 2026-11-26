@@ -83,13 +83,13 @@ lemma self_mem_singleton' {α : Type} (μ : Distr α) : μ ∈ singleton' μ := 
       | Option.none => (⊥ : WithBot α)
       | Option.some x => x)
   show μ ∈ (singleton' μ).set
-  refine ⟨(μ.to_distr, f), Set.mem_iUnion₂.mpr ⟨μ.to_distr, rfl, Set.mem_prod.mpr ⟨rfl, ?_⟩⟩, ?_⟩
+  refine ⟨μ.to_distr, rfl, f, ?_, ?_⟩
   · intro x hx; cases x with
     | bot => exact Set.mem_univ _
     | coe x => cases x with
       | bot => exact Set.mem_univ _
       | coe x => rfl
-  · ext x
+  · symm; ext x
     show (PMF.bind μ.to_distr f) x = μ x
     refine (PMF.bind_apply _ _ x).trans ?_
     rw [tsum_eq_single (WithBot.some x : WithBot (WithBot α))]
@@ -103,11 +103,7 @@ lemma self_mem_singleton' {α : Type} (μ : Distr α) : μ ∈ singleton' μ := 
 lemma singleton'_set_eq {α : Type} (μ : Distr α) :
     (singleton' μ).set = { ν | μ ≤ ν } := by
   ext ν; constructor
-  · rintro ⟨⟨ν, f⟩, ⟨s, h, hs⟩, ⟨_, rfl, rfl, hf⟩, rfl⟩
-    obtain ⟨ξ, rfl⟩ := Set.mem_range.mp h; clear h
-    obtain ⟨_, h, h'⟩ := hs
-    obtain ⟨rfl, rfl⟩ := Set.mem_range.mp h; clear h
-    rcases h' with ⟨rfl, h⟩; simp only [Function.uncurry_apply_pair, Set.mem_setOf_eq]
+  · rintro ⟨_, rfl, f, h, rfl⟩
     intro x; by_cases hx : μ x = 0
     · rw [hx]; exact bot_le
     · conv => rhs; exact PMF.bind_apply _ _ _
@@ -117,9 +113,7 @@ lemma singleton'_set_eq {α : Type} (μ : Distr α) :
       have hx' : some (some x) ∈ (PMF.to_distr μ).support := by
         refine (PMF.mem_support_iff _ _).mpr ?_
         simp only [PMF.to_distr, DFunLike.coe]; exact hx
-      have := Set.mem_pi.mp h (some (some x)) hx'
-      simp only [Option.elim_some, Function.comp_apply] at this
-      have := Set.mem_singleton_iff.mp this
+      have : f (some (some x)) = PMF.pure (some x) := (mem_pure x).mp (h (some (some x)) hx')
       conv => lhs; arg 1; exact this
       exact PMF.pure_apply_self _
   · intro hle; exact (singleton' _).upcl hle (self_mem_singleton' _)
@@ -184,27 +178,20 @@ def nondet {ι α : Type} [Finite ι] [Nonempty ι] (s : ι → ConvexPowerset �
 
 lemma mem_nondet {ι α : Type} [Finite ι] [Nonempty ι] {s : ι → ConvexPowerset α} {μ : Distr α} :
     μ ∈ nondet s ↔ ∃ ξ : PMF ι, ∃ k ∈ ξ.support.pi (set ∘ s), μ = ξ.bind k := by
-  simp only [Membership.mem, Set.Mem, nondet, bind, c_bind, Set.image, finitely_generated,
-    Bind.bind, Prod.exists, Function.uncurry_apply_pair]
+  change μ ∈ c_bind finitely_generated s ↔ _
   constructor
-  · rintro ⟨_, f, ⟨_, ⟨ν, rfl⟩, _, ⟨⟨ξ, _, rfl⟩, rfl⟩, rfl, hf⟩, rfl⟩
-    refine ⟨ξ, fun x ↦ f x, ?_, ?_⟩
-    · refine Set.mem_pi.mpr ?_; intro i hi
-      exact Set.mem_pi.mp hf i hi
-    · ext x
-      refine ((PMF.bind_apply _ _ x).trans (total_prob _)).trans ?_
-      refine ((congrArg₂ (· + ·) rfl (zero_mul _)).trans (add_zero _)).trans ?_
-      exact (PMF.bind_apply _ _ x).symm
+  · rintro ⟨_, ⟨ξ, _, rfl⟩, f, hf, rfl⟩
+    refine ⟨ξ, fun x ↦ f x, fun i hi ↦ hf i hi, ?_⟩
+    ext x
+    refine ((PMF.bind_apply _ _ x).trans (total_prob _)).trans ?_
+    refine ((congrArg₂ (· + ·) rfl (zero_mul _)).trans (add_zero _)).trans ?_
+    exact (PMF.bind_apply _ _ x).symm
   · rintro ⟨ξ, f, hf, rfl⟩
-    refine ⟨PMF.to_distr ξ, with_bot f (β := Distr α), ?_, ?_⟩
-    · refine Set.mem_biUnion ?_ ⟨rfl, ?_⟩ (x := PMF.to_distr ξ)
-      · exact ⟨ξ, True.intro, rfl⟩
-      · refine Set.mem_pi.mpr fun i hi ↦ ?_; cases i with
-        | bot => contradiction
-        | coe i =>
-          simp only [Option.elim, Function.comp_apply, with_bot]
-          exact Set.mem_pi.mp hf i hi
-    · ext x
+    refine ⟨PMF.to_distr ξ, ⟨ξ, Set.mem_univ _, rfl⟩, with_bot f (β := Distr α), ?_, ?_⟩
+    · intro i hi; cases i with
+      | bot => contradiction
+      | coe i => exact hf i hi
+    · symm; ext x
       refine ((PMF.bind_apply _ _ x).trans (total_prob _)).trans ?_
       refine ((congrArg₂ (· + ·) rfl (zero_mul _)).trans (add_zero _)).trans ?_
       exact (PMF.bind_apply _ _ x).symm

@@ -522,7 +522,7 @@ lemma bind_reconstruct {α β : Type} {μ : Distr α} {g : WithBot α → Distr 
       rw [ hPtot ] at hR_sum;
       rw [ eq_comm, ← ENNReal.add_right_inj ];
       · rw [ ← hR_sum, ‹∑' z, ν z = 1›, tsub_add_cancel_of_le ];
-        grind +suggestions;
+        simp [prob_bot];
       · simp +decide [ ENNReal.sub_eq_top_iff ])
     -- Define `gbot : Distr β := ⟨fun z => R z / μ ⊥, _⟩`.
     obtain ⟨gbot, hgbot⟩ : ∃ gbot : Distr β, ∀ z, gbot z = R z / μ ⊥ := by

@@ -8,7 +8,7 @@ import ConvexPowerset.Distr.Topology
 
 instance : Pure ConvexPowerset where
   pure x := {
-    set := { pure x }
+    set := {μ | μ = pure x}
     nonempty := Set.singleton_nonempty _
     convex := by
       conv => arg 2; exact Set.image_singleton
@@ -16,29 +16,30 @@ instance : Pure ConvexPowerset where
     closed := isClosed_singleton
     upcl := by
       intro μ ν hle rfl
-      simp only [Set.mem_singleton_iff]; symm; apply proper_dist_maximal _ hle
+      change _ = _; symm; apply proper_dist_maximal _ hle
       refine PMF.pure_apply_of_ne _ _ ?_; symm; exact Option.some_ne_none _
   }
 
 namespace ConvexPowerset
 
 def c_bind {α β : Type} (c : ConvexPowerset α) (k : α → ConvexPowerset β) : Set (Distr β) :=
-    Function.uncurry PMF.bind '' ⋃ μ ∈ c, {μ} ×ˢ μ.support.pi (Option.elim · Set.univ (set ∘ k))
+  {ν | ∃ μ ∈ c, ∃ f : WithBot α → Distr β, (∀ x ∈ μ.support, f x ∈ with_bot k x) ∧ ν = μ.bind f}
+
+-- `c_bind` agrees with `distr_bind` on the underlying sets.
+lemma c_bind_eq_distr_bind {α β : Type} (c : ConvexPowerset α) (k : α → ConvexPowerset β) :
+    c.c_bind k = distr_bind c.set (set ∘ k) := by
+  ext ν; constructor
+  · rintro ⟨μ, hμ, f, hf, rfl⟩
+    refine ⟨⟨μ, f⟩, Set.mem_iUnion₂.mpr ⟨μ, hμ, Set.mem_prod.mpr ⟨rfl, ?_⟩⟩, rfl⟩
+    intro x hx; cases x <;> exact hf _ hx
+  · rintro ⟨⟨μ, f⟩, ⟨_, ⟨_, rfl⟩, _, ⟨hμ, rfl⟩, rfl, hf⟩, rfl⟩
+    exact ⟨μ, hμ, f, fun x hx ↦ by cases x <;> exact hf _ hx, rfl⟩
 
 lemma c_bind_nonempty {α β : Type} {s : ConvexPowerset α} {k : α → ConvexPowerset β} :
     (s.c_bind k).Nonempty := by
   obtain ⟨μ, hμ⟩ := s.nonempty
-  let g t := Option.elim t Set.univ (ConvexPowerset.set ∘ k)
-  have hf : (μ.support.pi g).Nonempty := by {
-    apply (Set.pi_nonempty_iff (s := μ.support) (t := g)).2
-    intro x; match x with
-    | ⊥ => use ⊥; intro hb; simp [g, Option.elim]
-    | WithBot.some y =>
-        have ⟨ν, hν⟩ := (k y).nonempty
-        use ν; intro hy; exact hν
-  }
-  rcases hf with ⟨f, hf⟩; use (PMF.bind μ f)
-  exact ⟨⟨μ, f⟩, Set.mem_iUnion₂.mpr ⟨μ, hμ, Set.mem_prod.mpr ⟨rfl, hf⟩⟩, rfl⟩
+  exact ⟨_, μ, hμ, fun x ↦ (with_bot k x).nonempty.some,
+    fun x _ ↦ (with_bot k x).nonempty.some_mem, rfl⟩
 
 -- Lemma B.1 from. POPL '25
 lemma countably_convex' {ι α : Type} {s : ConvexPowerset α} {ξ : PMF ι} {f : ι → Distr α}
@@ -76,13 +77,8 @@ end Distr
 -- Lemma B.1 from POPL '25
 lemma c_bind_convex {α β : Type} {s : ConvexPowerset α} {k : α → ConvexPowerset β} :
     Convex ENNReal (Subtype.val '' s.c_bind k) := by
-  rintro _ ⟨⟨d₁, hs₁⟩, ⟨⟨(μ : Distr α), (f : WithBot α → Distr β)⟩, hmem₁, heq₁⟩, rfl⟩
-  rintro _ ⟨⟨d₂, hs₂⟩, ⟨⟨(ν : Distr α), (g : WithBot α → Distr β)⟩, hmem₂, heq₂⟩, rfl⟩
-  obtain ⟨_, hμ, hmem₁⟩ := Set.mem_iUnion₂.mp hmem₁
-  obtain ⟨rfl, hf⟩ := Set.mem_prod.mp hmem₁
-  obtain ⟨_, hν, hmem₂⟩ := Set.mem_iUnion₂.mp hmem₂
-  obtain ⟨rfl, hg⟩ := Set.mem_prod.mp hmem₂
-  simp only at hμ hf hν hg heq₁ heq₂
+  rintro _ ⟨⟨d₁, hs₁⟩, ⟨μ, hμ, f, hf, heq₁⟩, rfl⟩
+  rintro _ ⟨⟨d₂, hs₂⟩, ⟨ν, hν, g, hg, heq₂⟩, rfl⟩
   intro p q hp hq hsum
   let ξ := Distr.convex_sum μ ν p q hsum
   have hdsum x (h : x ∈ ξ.support) : (p * μ x / ξ x) + (q * ν x / ξ x) = 1 := by
@@ -98,17 +94,16 @@ lemma c_bind_convex {α β : Type} {s : ConvexPowerset α} {k : α → ConvexPow
     · exact ⟨d x hx, fun _ ↦ rfl⟩
     · exact ⟨⊥, fun hc ↦ False.elim (hx hc)⟩
   choose f' hf' using hr
-  refine ⟨⟨_, Distr.convex_hassum_1 hs₁ hs₂ hsum⟩,
-    ⟨(ξ, f'), Set.mem_iUnion₂.mpr ⟨ξ, ?_, Set.mem_prod.mpr ⟨Set.mem_singleton _, ?_⟩⟩, ?_⟩, rfl⟩
+  refine ⟨⟨_, Distr.convex_hassum_1 hs₁ hs₂ hsum⟩, ⟨ξ, ?_, f', ?_, ?_⟩, rfl⟩
   · have h1 := (Set.mem_image Subtype.val _ _).mpr ⟨μ, hμ, rfl⟩
     have h2 := (Set.mem_image Subtype.val _ _).mpr ⟨ν, hν, rfl⟩
     have h := s.convex h1 h2 hp hq hsum
     obtain ⟨ξ', hξ, heq⟩ := (Set.mem_image Subtype.val s.set ξ.val).mp h
     apply Subtype.ext at heq; subst heq; exact hξ
-  · intro x hx; simp only; rw [hf' x hx]; cases x with
+  · intro x hx; rw [hf' x hx]; cases x with
     | bot => exact Set.mem_univ _
     | coe x =>
-      simp only [Option.elim, Function.comp_apply]
+      change _ ∈ k x
       have hxs := hx
       replace hx : ¬(p * μ x + q * ν x = 0) := hx
       simp only [add_eq_zero, mul_eq_zero, not_and, not_or] at hx
@@ -125,7 +120,7 @@ lemma c_bind_convex {α β : Type} {s : ConvexPowerset α} {k : α → ConvexPow
           have h := (k x).convex h1 h2 bot_le bot_le (hdsum x hxs)
           obtain ⟨ξ', hξ, heq⟩ := (Set.mem_image Subtype.val _ _).mp h
           simp_rw [← heq]; exact hξ
-  · ext z; refine (PMF.bind_apply _ _ _).trans ?_
+  · symm; ext z; refine (PMF.bind_apply _ _ _).trans ?_
     have h1 := congrArg Subtype.val heq₁; simp only at h1; subst h1
     have h2 := congrArg Subtype.val heq₂; simp only at h2; subst h2
     refine Eq.trans ?_ (congrArg₂ (· + ·) (congrArg (p * ·) (PMF.bind_apply μ f z))
@@ -166,22 +161,19 @@ lemma bind_toReal {α β : Type} {μ : Distr α} {f : WithBot α → Distr β} {
 
 lemma c_bind_closed {α β : Type} {s : ConvexPowerset α} {k : α → ConvexPowerset β} :
     IsClosed (s.c_bind k) :=
-  bind_closed s.closed
+  c_bind_eq_distr_bind s k ▸ bind_closed s.closed
     (fun x ↦ (k x).nonempty)
     (fun x ↦ (k x).closed)
 
 lemma c_bind_upcl {α β : Type} {s : ConvexPowerset α} {k : α → ConvexPowerset β} :
     IsUpperSet (s.c_bind k) := by
   intro ν₁ ν₂ hle
-  rintro ⟨⟨μ, f⟩, hmem, rfl⟩
-  obtain ⟨_, hμ, hmem⟩ := Set.mem_iUnion₂.mp hmem
-  obtain ⟨rfl, h⟩ := Set.mem_prod.mp hmem
+  rintro ⟨(μ : PMF (WithBot α)), hμ, (f : WithBot α → PMF (WithBot β)), h, rfl⟩
   by_cases h0 : μ.bind f ⊥ = 0
-  · exact ⟨⟨μ, f⟩, Set.mem_iUnion₂.mpr ⟨μ, hμ, Set.mem_prod.mpr ⟨rfl, h⟩⟩,
-      proper_dist_maximal h0 hle⟩
+  · exact ⟨μ, hμ, f, h, (proper_dist_maximal h0 hle).symm⟩
   · -- Δ y is the amout of missing probability mass for y, scaled by the amount of unassigned mass
     let Δ (y : β) := (ν₂ y - μ.bind f y) / μ.bind f ⊥
-    let g x : Distr β :=
+    let g x : PMF (WithBot β) :=
       ⟨ fun y ↦ match y with
         | some y => f x y + f x ⊥ * Δ y
         | none => f x ⊥ * (1 - tsum Δ),
@@ -229,7 +221,7 @@ lemma c_bind_upcl {α β : Type} {s : ConvexPowerset α} {k : α → ConvexPower
             convert ENNReal.summable.hasSum using 1;
             symm; exact total_prob _
     ⟩
-    refine ⟨⟨μ, g⟩, Set.mem_iUnion₂.mpr ⟨μ, hμ, Set.mem_prod.mpr ⟨rfl, ?_⟩⟩, ?_⟩
+    refine ⟨μ, hμ, g, ?_, ?_⟩
     · intro x hx; cases x with
       | bot => exact Set.mem_univ _
       | coe x =>
@@ -250,7 +242,7 @@ lemma c_bind_upcl {α β : Type} {s : ConvexPowerset α} {k : α → ConvexPower
           · exact fun y => hle y;
         rw [ ← htΔ, ENNReal.div_eq_inv_mul ];
         rw [ ← ENNReal.tsum_mul_left ] ; exact tsum_congr fun _ => by rw [ ENNReal.div_eq_inv_mul ]
-      refine PMF.ext fun x => ?_;
+      refine (PMF.ext fun x => ?_).symm;
       rcases x with ( _ | x ) <;> simp_all only [Set.mem_pi, PMF.mem_support_iff, ne_eq,
         PMF.bind_apply];
       · -- Substitute htΔ into the expression for the sum.
@@ -308,11 +300,8 @@ lemma mem_bind {α β : Type} {s : ConvexPowerset α}
     ∃ μ ∈ s,
       ∃ f ∈ μ.support.pi fun x ↦ Option.elim x Set.univ (ConvexPowerset.set ∘ k),
         ν = μ.bind f := by
-  constructor
-  · rintro ⟨⟨ξ, f⟩, ⟨_, ⟨_, rfl⟩, _, ⟨hξ, rfl⟩, rfl, hf⟩, rfl⟩
-    refine ⟨ξ, hξ, f, hf, ?_⟩; rfl
-  · rintro ⟨ξ, hξ, f, hf, rfl⟩; refine ⟨⟨ξ, f⟩, ?_⟩
-    exact ⟨Set.mem_iUnion₂.mpr ⟨ξ, hξ, Set.mem_prod.mpr ⟨Set.mem_singleton _, hf⟩⟩, rfl⟩
+  constructor <;> rintro ⟨ξ, hξ, f, hf, rfl⟩ <;>
+    exact ⟨ξ, hξ, f, fun x hx ↦ by cases x <;> exact hf _ hx, rfl⟩
 
 instance : Monad ConvexPowerset where
 

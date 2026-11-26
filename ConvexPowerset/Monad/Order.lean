@@ -13,11 +13,8 @@ lemma bind_monotone {α β : Type}
   apply le_iff_supset.mp at h
   have h' x := le_iff_supset.mp (h' x)
   refine le_iff_supset.mpr ?_
-  rintro _ ⟨⟨μ, f'⟩, hmem, rfl⟩
-  obtain ⟨_, hμ, hmem⟩ := Set.mem_iUnion₂.mp hmem
-  obtain ⟨rfl, hf⟩ := Set.mem_prod.mp hmem
-  refine ⟨⟨μ, f'⟩, Set.mem_iUnion₂.mpr ⟨μ, h hμ, Set.mem_prod.mpr ⟨rfl, ?_⟩⟩, rfl⟩
-  refine Set.mem_pi.mpr fun x hx ↦ ?_
+  rintro _ ⟨μ, hμ, f', hf, rfl⟩
+  refine ⟨μ, h hμ, f', fun x hx ↦ ?_, rfl⟩
   cases x with
   | bot => exact Set.mem_univ _
   | coe x => exact h' x (hf x hx)
@@ -163,6 +160,8 @@ lemma bind_continuous {α β : Type}
   · refine ωSup_le _ _ fun i ↦ ?_
     refine bind_monotone ?_ ?_ <;> exact le_ωSup _ _
   · refine le_iff_supset.mpr ?_
+    change (⋂ i, (c i).c_bind (cf i)) ⊆ (ωSup c).c_bind (ωSup cf)
+    simp only [c_bind_eq_distr_bind]
     -- Reduce to the `distr_bind` statement on underlying sets.
     refine distr_bind_iInter_subset (A := fun i => (c i).set)
       (K := fun i x => (cf i x).set) ?_ ?_ ?_ ?_ ?_
